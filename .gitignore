@@ -1,0 +1,14 @@
+# config
+koa-node/public/javascripts/config.js
+pythonScript/privateConfig.json
+sign-in-web/src/components/httpUrl.js
+
+# file
+pythonScript/chrome-proxy-extensions
+dist
+printScreen.png
+save.png
+
+# IDEA VSCode config
+.vscode
+.idea
