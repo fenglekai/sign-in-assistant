@@ -66,6 +66,7 @@ const ScrollList = defineComponent({
             <td>{item.time}</td>
             {windowWidth.value > 992 ? (
               <>
+                <td>{item.readCardTime}</td>
                 <td>{item.machine}</td>
                 <td>{item.isEffective}</td>
               </>
@@ -97,6 +98,7 @@ const ScrollList = defineComponent({
                 <th>打卡时间</th>
                 {windowWidth.value > 992 ? (
                   <>
+                    <th>读卡时间</th>
                     <th>打卡卡机</th>
                     <th>是否有效</th>
                   </>

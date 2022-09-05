@@ -217,7 +217,9 @@ const signInList = ref([]);
 const userID = ref(localStorage.getItem("uId"));
 const userInformation = computed(() => {
   const date = new Date();
-  const formatDate = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+  const formatDate = `${date.getFullYear()}-${
+    date.getMonth() + 1
+  }-${date.getDate()}`;
   return { uId: userID.value, time: formatDate };
 });
 const uIdInput = ref();
@@ -248,23 +250,30 @@ const setWindowWidth = () => {
   return (windowWidth.value = document.body.clientWidth);
 };
 
+const formatJsonDate = (date) => {
+  const formatDate = new Intl.DateTimeFormat("zh", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(new Date(date));
+  return formatDate;
+};
+
 const fetchSignInData = async (params) => {
   try {
     const data = await axios.get(`${httpUrl}/signIn`, { params });
     signInList.value = data.data.data
       .map((item) => {
-        const formatTime = new Intl.DateTimeFormat("zh", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        }).format(new Date(item.time));
+        const formatTime = formatJsonDate(item.time);
+        const formatReadCardTime = formatJsonDate(item.time);
         return {
           ...item,
           time: formatTime,
+          readCardTime: formatReadCardTime,
         };
       })
       .reverse();

@@ -3,20 +3,24 @@ const mariadb = require("../public/javascripts/mariadb");
 const common = require("../public/javascripts/common");
 
 router.prefix("/signIn");
+// 识别bigInt数据类型
+function toJson(data) {
+  return JSON.stringify(data, (_, v) =>
+    typeof v === "bigint" ? `${v}n` : v
+  ).replace(/"(-?\d+)n"/g, (_, a) => a);
+}
+
 // 获取签到信息
 router.get("/", async function (ctx, next) {
   try {
-    const params = ctx.request.query
-    const data = await mariadb.querySignIn(params.uId,params.date);
+    const params = ctx.request.query;
+    const data = await mariadb.querySignIn(params.uId, params.date);
     const resData = data.map((item) => {
-      const { uId, name, time, machine, isEffective } = item;
-      return {
-        uId,
-        name,
-        time: new Date(time).toJSON(),
-        machine,
-        isEffective,
-      };
+      const { id, time, readCardTime } = item;
+      item.id = toJson(id);
+      item.time = new Date(time).toJSON();
+      item.readCardTime = new Date(readCardTime).toJSON();
+      return item;
     });
     ctx.body = common.responseBodyFormat(resData.reverse());
   } catch (error) {
@@ -52,7 +56,7 @@ router.post("/", async function (ctx, next) {
         500
       ));
     }
-    let sqlArr = []
+    let sqlArr = [];
     filterData.map((item) => {
       const columns = [];
       const values = [];
@@ -62,7 +66,7 @@ router.post("/", async function (ctx, next) {
       }
       const colStr = columns.join(",");
       const valStr = values.join(",");
-      sqlArr.push([colStr,valStr])
+      sqlArr.push([colStr, valStr]);
     });
     const data = await mariadb.insertSignIn(sqlArr);
     ctx.body = common.responseBodyFormat(signInData);

@@ -84,24 +84,33 @@ const uIdInput = ref();
 const datePicker = ref();
 const dateFormatValue = ref();
 
+const formatJsonDate = (date) => {
+  const formatDate = new Intl.DateTimeFormat("zh", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(new Date(date));
+  return formatDate;
+};
+
 const fetchSignInData = async (params) => {
   try {
     const data = await axios.get(`${httpUrl}/signIn`, { params });
-    signInList.value = data.data.data.map((item) => {
-      const formatTime = new Intl.DateTimeFormat("zh", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      }).format(new Date(item.time));
-      return {
-        ...item,
-        time: formatTime,
-      };
-    });
+    signInList.value = data.data.data
+      .map((item) => {
+        const formatTime = formatJsonDate(item.time);
+        const formatReadCardTime = formatJsonDate(item.readCardTime);
+        return {
+          ...item,
+          time: formatTime,
+          readCardTime: formatReadCardTime,
+        };
+      })
+      .reverse();
   } catch (error) {
     console.log(error);
   }
@@ -112,6 +121,7 @@ const reloadClick = async () => {
     await fetchSignInData();
     message.success("刷新成功~");
   } catch (error) {
+    message.error("刷新失败");
     console.log(error);
   }
 };
