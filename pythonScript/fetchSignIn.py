@@ -9,9 +9,13 @@ from selenium.common.exceptions import NoSuchElementException
 import requests
 import zipfile
 import time
+from datetime import datetime
 import os
 import re
 import ddddocr
+import shutil
+import sys
+import getpass
 
 with open("./privateConfig.json") as json_file:
     config = json.load(json_file)
@@ -21,7 +25,7 @@ with open("./privateConfig.json") as json_file:
     GLOBAL_PASSWORD = config['GLOBAL_PASSWORD']
     proxies = {'http': config['HTTP_PROXY'],
                'https': config['HTTP_PROXY']}
-    IS_MORNING = False
+    IS_MORNING = True
 
 
 # Chrome代理模板插件地址: https://github.com/revotu/selenium-chrome-auth-proxy
@@ -95,13 +99,13 @@ def get_sign_in_list(browser):
                     signInData['name'] = colsData[3].text
                     signInData['time'] = colsData[4].text
                     signInData['machine'] = colsData[5].text
+                    signInData['readCardTime'] = colsData[7].text
                     signInData['isEffective'] = colsData[9].text
                 except NoSuchElementException as e:
                     continue
                 else:
                     signInList.append(signInData)
     return signInList
-
 
 # 获取数据
 def get_sign_in_data(username, password, isMorning):
@@ -113,8 +117,16 @@ def get_sign_in_data(username, password, isMorning):
     browser = webdriver.Chrome(options=options)
     browser.get(HRM_URL)
     # 登录操作
-    browser.find_element('name', 'txtUserName').send_keys(username)
-    browser.find_element('name', 'txtPassWord').send_keys(password)
+    try:
+        browser.find_element('name', 'txtUserName').send_keys(username)
+        browser.find_element('name', 'txtPassWord').send_keys(password)
+    except NoSuchElementException as e:
+        print('浏览器打开页面失败')
+        time.sleep(10)
+        browser.close()
+        shutil.rmtree('chrome-proxy-extensions')
+        get_sign_in_data(GLOBAL_USERNAME, GLOBAL_PASSWORD, IS_MORNING)
+        return False
     # 识别验证码
     browser.save_screenshot('./images/printScreen.png')
     vCode = browser.find_element(By.CSS_SELECTOR, '#Table2>tbody>tr>td>div>span>img')
@@ -133,9 +145,10 @@ def get_sign_in_data(username, password, isMorning):
     browser.find_element('name', 'CaptchaControl1').send_keys(ocrRes)
     try:
         browser.find_element('id', 'Btn_Login').click()
-    except IOError:
+    except Exception as e:
         browser.close()
         get_sign_in_data(GLOBAL_USERNAME, GLOBAL_PASSWORD, IS_MORNING)
+        return
     time.sleep(1)
     # 查询考勤纪录
     # 进入侧边栏frame
@@ -156,12 +169,14 @@ def get_sign_in_data(username, password, isMorning):
     if isMorning:
         maxClick = 15
         listLen = 1
+        print("现在是早上")
     else:
         maxClick = 60
         listLen = 2
+        print("现在是下午")
     if len(signInList) < listLen:
         print("无打卡数据，即将刷新列表")
-        temp = []
+        temp = get_sign_in_list(browser)
         clickNum = 0
         while len(temp) < listLen and clickNum < maxClick:
             time.sleep(60)
@@ -179,17 +194,21 @@ def get_sign_in_data(username, password, isMorning):
         print("无打卡数据")
     return signInList
 
-
-if __name__ == "__main__":
-    # IS_MORNING = True
-    # get_sign_in_data(GLOBAL_USERNAME, GLOBAL_PASSWORD, IS_MORNING)
+# 初始化脚本
+def initScript():
     while True:
+        now_week = datetime.today().isoweekday()
+        print('今天是周%s'%(now_week))
+        if now_week == 6 or now_week == 7:
+            print('周末不在办公，不需要打卡')
+            time.sleep(20*60)
+            continue
         # 当前时间
         now_localtime = time.strftime("%H:%M:%S", time.localtime())
         # 当前时间（以时间区间的方式表示）
         now_time = Interval(now_localtime, now_localtime)
-        morning_time_interval = Interval("8:00:00", "8:15:00")
-        afternoon_time_interval = Interval("17:30:00", "18:30:00")
+        morning_time_interval = Interval("08:00:00", "08:15:00")
+        afternoon_time_interval = Interval("17:30:00", "17:50:00")
         print(now_time)
         if now_time in morning_time_interval:
             IS_MORNING = True
@@ -198,3 +217,35 @@ if __name__ == "__main__":
             IS_MORNING = False
             get_sign_in_data(GLOBAL_USERNAME, GLOBAL_PASSWORD, IS_MORNING)
         time.sleep(60)
+
+# 记录log
+class Logger(object):
+    def __init__(self, filename='output.txt', stream=sys.stdout):
+        self.terminal = stream
+        self.log = open(filename, 'w')
+    
+    def write(self, message):
+        self.terminal.write(message)
+        self.terminal.flush()
+        self.log.write(message)
+        self.log.flush()
+
+    def flush(self):
+        pass
+
+if __name__ == "__main__":
+    sys.stdout = Logger(stream=sys.stdout)
+    initUsername = input('请输入工号:')
+    initPassword = input('请输入密码:')
+    GLOBAL_USERNAME = initUsername
+    GLOBAL_PASSWORD = initPassword
+    # IS_MORNING = True
+    get_sign_in_data(GLOBAL_USERNAME, GLOBAL_PASSWORD, IS_MORNING)
+    try:
+        initScript()
+    except Exception as e:
+        print(e)
+        browser.close()
+        time.sleep(1)
+        initScript()
+

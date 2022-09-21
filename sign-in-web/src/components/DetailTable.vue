@@ -109,8 +109,7 @@ const fetchSignInData = async (params) => {
           time: formatTime,
           readCardTime: formatReadCardTime,
         };
-      })
-      .reverse();
+      });
   } catch (error) {
     console.log(error);
   }

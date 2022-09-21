@@ -199,11 +199,7 @@ import DetailTable from "./DetailTable.vue";
 import httpUrl from "./httpUrl";
 
 onMounted(() => {
-  if (!userID.value) {
-    message.info("请先设置个工号吧");
-    showModal.value = true;
-    return;
-  }
+  if (hasUserID()) return
   const { uId, time } = userInformation.value;
   fetchSignInData({ uId, date: time });
   window.addEventListener("resize", setWindowWidth);
@@ -250,6 +246,15 @@ const setWindowWidth = () => {
   return (windowWidth.value = document.body.clientWidth);
 };
 
+const hasUserID = () => {
+  if (!userID.value) {
+    message.info("请先设置个工号吧");
+    showModal.value = true;
+    return true;
+  }
+  return false;
+}
+
 const formatJsonDate = (date) => {
   const formatDate = new Intl.DateTimeFormat("zh", {
     year: "numeric",
@@ -285,6 +290,7 @@ const fetchSignInData = async (params) => {
 const reloadClick = async () => {
   try {
     const { uId, time } = userInformation.value;
+  if (hasUserID()) return
     await fetchSignInData({ uId, date: time });
     message.success("刷新成功~");
   } catch (error) {
