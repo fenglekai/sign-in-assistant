@@ -9,7 +9,6 @@ dist
 printScreen.png
 save.png
 node_modules
-signInApp
 
 # IDEA VSCode config
 .vscode
