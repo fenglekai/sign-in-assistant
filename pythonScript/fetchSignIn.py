@@ -6,6 +6,8 @@ from interval import Interval
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
 import requests
 import zipfile
 import time
@@ -16,16 +18,17 @@ import ddddocr
 import shutil
 import sys
 import getpass
+import psutil
+
 
 with open("./privateConfig.json") as json_file:
     config = json.load(json_file)
     HRM_URL = config['HRM_URL']
     BASE_URL = config['BASE_URL']
-    GLOBAL_USERNAME = config['GLOBAL_USERNAME']
-    GLOBAL_PASSWORD = config['GLOBAL_PASSWORD']
     proxies = {'http': config['HTTP_PROXY'],
                'https': config['HTTP_PROXY']}
     IS_MORNING = True
+    USER_LIST = config['USER_LIST']
 
 
 # Chrome代理模板插件地址: https://github.com/revotu/selenium-chrome-auth-proxy
@@ -86,52 +89,47 @@ def insert_sign_in_data(data):
 
 
 # 存储打卡数据
-def get_sign_in_list(browser):
-    rowsData = browser.find_elements(By.CSS_SELECTOR, '#DG_Result>tbody>tr')
-    signInList = []
-    if len(rowsData) >= 2:
-        for index, row in enumerate(rowsData):
-            colsData = row.find_elements(By.CSS_SELECTOR, 'td')
-            signInData = {}
-            if len(colsData) >= 9 and index != 0:
+def get_sign_in_list(bs_element):
+    try:
+        rows_data = bs_element.find_elements(By.CSS_SELECTOR, '#DG_Result>tbody>tr')
+    except Exception as e:
+        raise Exception(e)
+    sign_in_list = []
+    if len(rows_data) >= 2:
+        for index, row in enumerate(rows_data):
+            cols_data = row.find_elements(By.CSS_SELECTOR, 'td')
+            sign_in_data = {}
+            if len(cols_data) >= 9 and index != 0:
                 try:
-                    signInData["uId"] = colsData[1].text
-                    signInData['name'] = colsData[3].text
-                    signInData['time'] = colsData[4].text
-                    signInData['machine'] = colsData[5].text
-                    signInData['readCardTime'] = colsData[7].text
-                    signInData['isEffective'] = colsData[9].text
+                    sign_in_data["uId"] = cols_data[1].text
+                    sign_in_data['name'] = cols_data[3].text
+                    sign_in_data['time'] = cols_data[4].text
+                    sign_in_data['machine'] = cols_data[5].text
+                    sign_in_data['readCardTime'] = cols_data[7].text
+                    sign_in_data['isEffective'] = cols_data[9].text
                 except NoSuchElementException as e:
                     continue
                 else:
-                    signInList.append(signInData)
-    return signInList
+                    sign_in_list.append(sign_in_data)
+    return sign_in_list
 
-# 获取数据
-def get_sign_in_data(username, password, isMorning):
-    global browser
-    options = webdriver.ChromeOptions()
-    # 添加一个自定义的代理插件（配置特定的代理，含用户名密码认证）
-    options.add_extension(get_chrome_proxy_extension(
-        proxy=config['PROXY']))
-    browser = webdriver.Chrome(options=options)
-    browser.get(HRM_URL)
-    # 登录操作
+# 登录操作
+def login_frame(browser, username, password):
     try:
         browser.find_element('name', 'txtUserName').send_keys(username)
         browser.find_element('name', 'txtPassWord').send_keys(password)
     except NoSuchElementException as e:
         print('浏览器打开页面失败')
         time.sleep(10)
-        browser.close()
+        browser.quit()
         shutil.rmtree('chrome-proxy-extensions')
         get_sign_in_data(GLOBAL_USERNAME, GLOBAL_PASSWORD, IS_MORNING)
         return False
     # 识别验证码
     browser.save_screenshot('./images/printScreen.png')
-    vCode = browser.find_element(By.CSS_SELECTOR, '#Table2>tbody>tr>td>div>span>img')
-    location = vCode.location  # 获取验证码x,y轴坐标
-    size = vCode.size  # 获取验证码的长宽
+    v_code = browser.find_element(By.CSS_SELECTOR, '#Table2>tbody>tr>td>div>span>img')
+    location = v_code.location  # 获取验证码x,y轴坐标
+    size = v_code.size  # 获取验证码的长宽
     img_range = (int(location['x']), int(location['y']), int(location['x'] + size['width']),
                  int(location['y'] + size['height']))  # 写成我们需要截取的位置坐标
     i = Image.open("./images/printScreen.png")  # 打开截图
@@ -140,112 +138,126 @@ def get_sign_in_data(username, password, isMorning):
     ocr = ddddocr.DdddOcr()
     with open('./images/save.png', 'rb') as f:
         img_bytes = f.read()
-    ocrRes = ocr.classification(img_bytes)
-    print('验证码为:', ocrRes)
-    browser.find_element('name', 'CaptchaControl1').send_keys(ocrRes)
+    ocr_res = ocr.classification(img_bytes)
+    print('验证码为:', ocr_res)
+    browser.find_element('name', 'CaptchaControl1').send_keys(ocr_res)
+    browser.find_element('id', 'Btn_Login').click()
+
+
+# 获取数据
+def get_sign_in_data(username, password, isMorning):
+    global browser
+    # options = webdriver.ChromeOptions()
+    options = Options()
+    # 防止检测
+    options.add_experimental_option('excludeSwitches', ['enable-automation'])
+    options.binary_location = '/usr/bin/google-chrome'
+    # 显示UI
+    options.add_argument('--headless')
+    options.add_argument('--disable-gpu')
+    options.add_argument('--start-maximized')
+    options.add_argument('--window-size=1500,1000')
+    options.add_argument('--disable-notifications')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--verbose')
+    # options.add_argument('--remote-debugging-port=9222')
+
+    # 添加一个自定义的代理插件（配置特定的代理，含用户名密码认证），无法在无ui（--headless）情况下运行
+    # options.add_extension(get_chrome_proxy_extension(
+    #     proxy=config['PROXY']))
+    browser = webdriver.Chrome(executable_path='/usr/bin/chromedriver', options=options)
+    browser.get(HRM_URL)
+    # 登录操作
+    login_frame(browser, username, password)
     try:
-        browser.find_element('id', 'Btn_Login').click()
+        aside_frame = browser.find_element(By.CSS_SELECTOR, 'frameset>frameset').find_element('name', 'contents')
     except Exception as e:
-        browser.close()
-        get_sign_in_data(GLOBAL_USERNAME, GLOBAL_PASSWORD, IS_MORNING)
-        return
+        print(str(e))
+        if '域帳號密碼錯誤' and '域 帳 號 被 鎖 定' in str(e):
+            browser.quit()
+            return print('登录时出现错误，请检查域帳號是否正确')
+        if '驗證碼輸入不正確' in str(e):
+            browser.quit()
+            get_sign_in_data(GLOBAL_USERNAME, GLOBAL_PASSWORD, IS_MORNING)
+        else:
+            browser.quit()
+            return
+
     time.sleep(1)
     # 查询考勤纪录
     # 进入侧边栏frame
-    asideFrame = browser.find_element(By.CSS_SELECTOR, 'frameset>frameset').find_element('name', 'contents')
-    browser.switch_to.frame(asideFrame)
-    browser.find_element('id', 'TreOrgant15').click()
+    browser.switch_to.frame(aside_frame)
+    browser.find_element('id', 'TreOrgant19').click()
     time.sleep(0.5)
-    browser.find_element('id', 'TreOrgant16').click()
+    browser.find_element('id', 'TreOrgant20').click()
     time.sleep(1)
     browser.switch_to.default_content()
     # 进入主内容frame
-    mainFrame = browser.find_element(By.CSS_SELECTOR, 'frameset>frameset').find_element('name', 'main')
-    browser.switch_to.frame(mainFrame)
-    browser.find_element('id', 'btnSearch').click()
+    main_frame = browser.find_element(By.CSS_SELECTOR, 'frameset>frameset').find_element('name', 'main')
+    browser.switch_to.frame(main_frame)
+    try:
+        browser.find_element('id', 'btnSearch').click()
+    except Exception as e:
+        print(e)
+        browser.quit()
+        get_sign_in_data(GLOBAL_USERNAME, GLOBAL_PASSWORD, IS_MORNING)
+        return
     time.sleep(1)
 
-    signInList = get_sign_in_list(browser)
+    sign_in_list = get_sign_in_list(browser)
+    
     if isMorning:
-        maxClick = 15
-        listLen = 1
+        max_click = 3
+        list_len = 1
         print("现在是早上")
     else:
-        maxClick = 60
-        listLen = 2
+        max_click = 6
+        list_len = 2
         print("现在是下午")
-    if len(signInList) < listLen:
+    if len(sign_in_list) < list_len:
         print("无打卡数据，即将刷新列表")
         temp = get_sign_in_list(browser)
         clickNum = 0
-        while len(temp) < listLen and clickNum < maxClick:
-            time.sleep(60)
-            print("刷新第%s次,还会刷新%s次" % (clickNum+1,maxClick-clickNum-1))
+        while len(temp) < list_len and clickNum < max_click:
+            time.sleep(10)
+            print("刷新第%s次,还会刷新%s次" % (clickNum+1,max_click-clickNum-1))
             reload_btn = browser.find_elements(By.CSS_SELECTOR, '#TBar>tbody>tr>td>table>tbody>tr>td')
             reload_btn[7].click()
             temp = get_sign_in_list(browser)
             clickNum += 1
-        signInList = temp
-    print(signInList)
-    browser.close()
-    if len(signInList):
-        insert_sign_in_data(signInList)
+        sign_in_list = temp
+    print(sign_in_list)
+    browser.quit()
+    if len(sign_in_list):
+        insert_sign_in_data(sign_in_list)
     else:
         print("无打卡数据")
-    return signInList
+    return sign_in_list
 
-# 初始化脚本
-def initScript():
-    while True:
-        now_week = datetime.today().isoweekday()
-        print('今天是周%s'%(now_week))
-        if now_week == 6 or now_week == 7:
-            print('周末不在办公，不需要打卡')
-            time.sleep(20*60)
-            continue
-        # 当前时间
-        now_localtime = time.strftime("%H:%M:%S", time.localtime())
-        # 当前时间（以时间区间的方式表示）
-        now_time = Interval(now_localtime, now_localtime)
-        morning_time_interval = Interval("08:00:00", "08:15:00")
-        afternoon_time_interval = Interval("17:30:00", "17:50:00")
-        print(now_time)
-        if now_time in morning_time_interval:
-            IS_MORNING = True
-            get_sign_in_data(GLOBAL_USERNAME, GLOBAL_PASSWORD, IS_MORNING)
-        if now_time in afternoon_time_interval:
-            IS_MORNING = False
-            get_sign_in_data(GLOBAL_USERNAME, GLOBAL_PASSWORD, IS_MORNING)
-        time.sleep(60)
 
-# 记录log
-class Logger(object):
-    def __init__(self, filename='output.txt', stream=sys.stdout):
-        self.terminal = stream
-        self.log = open(filename, 'w')
-    
-    def write(self, message):
-        self.terminal.write(message)
-        self.terminal.flush()
-        self.log.write(message)
-        self.log.flush()
+def runserver():
+    global GLOBAL_USERNAME
+    global GLOBAL_PASSWORD
+    for item in USER_LIST:
+        GLOBAL_USERNAME = item['username']
+        GLOBAL_PASSWORD = item['password']
+        get_sign_in_data(GLOBAL_USERNAME, GLOBAL_PASSWORD, IS_MORNING)
 
-    def flush(self):
-        pass
+def detection_process():
+    process_name = 'chromedriver'
+    process_list = [process for process in psutil.process_iter() if process.name() == process_name]
+    if len(process_list) > 0:
+        for process in process_list:
+            process.kill()
 
 if __name__ == "__main__":
-    sys.stdout = Logger(stream=sys.stdout)
-    initUsername = input('请输入工号:')
-    initPassword = input('请输入密码:')
-    GLOBAL_USERNAME = initUsername
-    GLOBAL_PASSWORD = initPassword
-    # IS_MORNING = True
-    get_sign_in_data(GLOBAL_USERNAME, GLOBAL_PASSWORD, IS_MORNING)
-    try:
-        initScript()
-    except Exception as e:
-        print(e)
-        browser.close()
-        time.sleep(1)
-        initScript()
+    # 当前时间
+    now_localtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    # 当前时间（以时间区间的方式表示）
+    now_time = Interval(now_localtime, now_localtime)
+    print('=========%s script start===============' % now_time)
+    runserver()
+    # detection_process()
+    print('=========script end===============')
+
 

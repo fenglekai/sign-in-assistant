@@ -2,9 +2,12 @@
 koa-node/public/javascripts/config.js
 pythonScript/privateConfig.json
 sign-in-web/src/components/httpUrl.js
+*.log
+cmd.md
 
 # file
 pythonScript/chrome-proxy-extensions
+pythonScript/Profile_1
 dist
 printScreen.png
 save.png

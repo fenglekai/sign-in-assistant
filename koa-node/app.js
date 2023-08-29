@@ -10,16 +10,16 @@ let ip = require("ip");
 const index = require("./routes/index");
 const signIn = require("./routes/signIn");
 
-app.use(async (ctx, next)=> {
-  ctx.set('Access-Control-Allow-Origin', '*');
-  ctx.set('Access-Control-Allow-Headers', 'Content-Type, Content-Length, Authorization, Accept, X-Requested-With , yourHeaderFeild');
-  ctx.set('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
-  if (ctx.method == 'OPTIONS') {
-    ctx.body = 200; 
-  } else {
-    await next();
-  }
-});
+// app.use(async (ctx, next)=> {
+//   ctx.set('Access-Control-Allow-Origin', '*');
+//   ctx.set('Access-Control-Allow-Headers', 'Content-Type, Content-Length, Authorization, Accept, X-Requested-With , yourHeaderFeild');
+//   ctx.set('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
+//   if (ctx.method == 'OPTIONS') {
+//     ctx.body = 200; 
+//   } else {
+//     await next();
+//   }
+// });
 
 // error handler
 onerror(app);
@@ -58,7 +58,7 @@ app.on("error", (err, ctx) => {
 });
 
 // listen
-const port = (process.env.PORT = 8002);
+const port = (process.env.PORT = 8003);
 console.log("-------------------------------------------");
 console.log("listen:", `http://localhost:${port}`);
 console.log("listen:", `http://${ip.address()}:${port}`);

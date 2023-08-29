@@ -1,9 +1,0 @@
-请输入工号:请输入密码:欢迎使用ddddocr，本项目专注带动行业内卷，个人博客:wenanzhe.com
-训练数据支持来源于:http://146.56.204.113:19199/preview
-爬虫框架feapder可快速一键接入，快速开启爬虫之旅：https://github.com/Boris-code/feapder
-验证码为: K4JF
-现在是早上
-[{'uId': 'F1338718', 'name': '馮樂鎧', 'time': '2022/09/21 08:06:39', 'machine': 'D1N1-02', 'readCardTime': '2022/09/21 08:06:34', 'isEffective': 'Y'}]
-{'data': None, 'msg': '已存在相同时间签到', 'status': 500}
-今天是周3
-'16:28:20'
