@@ -20,8 +20,9 @@ import sys
 import getpass
 import psutil
 
+path = '/home/allen/Documents/flk-code/sign-in-assistant/pythonScript'
 
-with open("./privateConfig.json") as json_file:
+with open("%s/static/privateConfig.json" % path) as json_file:
     config = json.load(json_file)
     HRM_URL = config['HRM_URL']
     BASE_URL = config['BASE_URL']
@@ -154,18 +155,20 @@ def get_sign_in_data(username, password, isMorning):
     options.binary_location = '/usr/bin/google-chrome'
     # 显示UI
     options.add_argument('--headless')
+    options.add_argument('--no-sandbox')
     options.add_argument('--disable-gpu')
     options.add_argument('--start-maximized')
-    options.add_argument('--window-size=1500,1000')
+    # options.add_argument('--window-size=1500,1000')
     options.add_argument('--disable-notifications')
-    options.add_argument('--no-sandbox')
     options.add_argument('--verbose')
     # options.add_argument('--remote-debugging-port=9222')
+    # options.add_argument("profile-directory=profile")
+    # options.add_argument("--user-data-dir=./static/profile")
 
     # 添加一个自定义的代理插件（配置特定的代理，含用户名密码认证），无法在无ui（--headless）情况下运行
     # options.add_extension(get_chrome_proxy_extension(
     #     proxy=config['PROXY']))
-    browser = webdriver.Chrome(executable_path='/usr/bin/chromedriver', options=options)
+    browser = webdriver.Chrome(executable_path='%s/static/chromedriver' % path, options=options)
     browser.get(HRM_URL)
     # 登录操作
     login_frame(browser, username, password)
@@ -250,14 +253,18 @@ def detection_process():
         for process in process_list:
             process.kill()
 
-if __name__ == "__main__":
+def main():
     # 当前时间
     now_localtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     # 当前时间（以时间区间的方式表示）
     now_time = Interval(now_localtime, now_localtime)
     print('=========%s script start===============' % now_time)
+    detection_process()
     runserver()
-    # detection_process()
     print('=========script end===============')
+
+
+if __name__ == "__main__":
+    main()
 
 

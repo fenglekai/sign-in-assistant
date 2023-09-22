@@ -2,8 +2,8 @@
 koa-node/public/javascripts/config.js
 pythonScript/privateConfig.json
 sign-in-web/src/components/httpUrl.js
-*.log
-cmd.md
+chromedriver
+privateConfig.json
 
 # file
 pythonScript/chrome-proxy-extensions
@@ -12,6 +12,9 @@ dist
 printScreen.png
 save.png
 node_modules
+packages
+logs
+__pycache__
 
 # IDEA VSCode config
 .vscode
