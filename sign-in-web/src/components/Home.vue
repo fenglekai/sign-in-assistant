@@ -59,11 +59,22 @@
         >
           <template #header>
             今天打卡了吗
-            <n-tag :bordered="false" round type="info">
-              打卡信息存在10分钟左右延迟
-            </n-tag>
           </template>
           <template #header-extra>
+            <div style="margin-right: 12px">
+              <n-button
+                strong
+                secondary
+                circle
+                type="info"
+                @click="handleDrawer"
+                
+              >
+                <template #icon>
+                  <n-icon :component="QuestionMarkOutlined" />
+                </template>
+              </n-button>
+            </div>
             <n-button
               strong
               secondary
@@ -126,7 +137,7 @@
                 <span style="font-weight: bold; font-size: 18px">
                   打卡成功，冲啊！下班啦~
                 </span>
-                <span>打卡时间： {{ signInList[1].time }}</span>
+                <span>打卡时间： {{ signInList[signInList.length-1].time }}</span>
               </template>
               <template v-else>
                 <n-icon :component="CheckCircle" :size="60" />
@@ -185,6 +196,23 @@
         </template>
       </n-card>
     </n-modal>
+    <n-drawer v-model:show="tipDrawer" placement="top">
+      <n-drawer-content title="提示">
+        <n-tag type="info"
+          >7:00-10:00,17:00-21:00为获取数据时间,请在结束10分钟前打卡</n-tag
+        >
+        <br />
+        <n-tag style="margin-top: 10px" type="info">自动程序10分钟刷新</n-tag>
+        <br />
+        <n-tag style="margin-top: 10px" type="info">
+          打卡信息存在10分钟左右延迟
+        </n-tag>
+        <br />
+        <n-tag style="margin-top: 10px" type="info">
+          如若无法主动刷新请联系管理员
+        </n-tag>
+      </n-drawer-content>
+    </n-drawer>
   </n-config-provider>
 </template>
 
@@ -194,6 +222,7 @@ import { onMounted, ref, computed, onUnmounted } from "vue";
 import { DarkModeFilled, DarkModeOutlined } from "@vicons/material";
 import { CheckCircle } from "@vicons/fa";
 import { Reload } from "@vicons/ionicons5";
+import { QuestionMarkOutlined } from "@vicons/material";
 import { SwitchHorizontal } from "@vicons/tabler";
 import { createDiscreteApi, darkTheme, lightTheme } from "naive-ui";
 import DetailTable from "./DetailTable.vue";
@@ -290,14 +319,27 @@ const fetchSignInData = async (params) => {
 
 const wsConnection = () => {
   reloadBtn.value = true
+  let timer = null
   const { uId, time } = userInformation.value;
   const socket = new WebSocket("wss://foxconn.devkai.site/api");
   socket.onopen = () => {
     socket.send("queryStart" + uId)
+    timer = setTimeout(() => {
+      message.error("远程响应超时");
+      reloadBtn.value = false
+      socket.close()
+    },1000*10)
   }
   socket.onmessage = async ({data}) => {
+    clearTimeout(timer)
+    timer = setTimeout(() => {
+      message.error("远程响应超时");
+      reloadBtn.value = false
+      socket.close()
+    },1000*10)
     message.info(String(data));
-    if (String(data).includes("task end")) {
+    if (String(data).includes("Task end")) {
+      clearTimeout(timer)
       await fetchSignInData({ uId, date: time });
       message.success("刷新成功~");
       reloadBtn.value = false
@@ -331,6 +373,11 @@ const handleCheck = () => {
   const { uId, time } = userInformation.value;
   fetchSignInData({ uId, date: time });
 };
+
+const tipDrawer = ref(false);
+const handleDrawer = () => {
+  tipDrawer.value = true
+}
 </script>
 
 <style scoped>

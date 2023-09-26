@@ -21,25 +21,28 @@ def on_message(ws, message):
         username = msg_split[1]
         print(USER_LIST)
         user_list = [user for user in USER_LIST if user['username'] == username]
-        print(user_list)
-        ws.send("python: task start")
+        if len(user_list) == 0: 
+            ws.send("python: The query user list does not exist")
+            ws.send("python: Task end")
+            return
+        ws.send("python: Task start")
         # 创建一个临时文件对象
         temp_stdout = io.StringIO()
         # 将标准输出重定向到临时文件对象
         sys.stdout = temp_stdout
-        fetchSignIn.main()
+        fetchSignIn.main(user_list)
         # 恢复标准输出
         sys.stdout = sys.__stdout__
         # 从临时文件对象中读取内容
         output = temp_stdout.getvalue()
         print(output)
         ws.send("python: " + output)
-        ws.send("python: task end")
+        ws.send("python: Task end")
 
 def on_error(ws, error):
     ws.send("python: %s" % error)
     print(error)
-    ws.send("python: task end")
+    ws.send("python: Task end")
 
 def on_close(ws, close_status_code, close_msg):
     print("### closed ###")

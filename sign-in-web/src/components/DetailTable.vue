@@ -30,21 +30,9 @@
         </template>
         刷新
       </n-button>
-      <n-button style="float: right" type="info" @click="tipDrawer = true">
-        tips
-      </n-button>
     </div>
     <ScrollList :signInList="signInList" :windowWidth="windowWidth" />
   </div>
-  <n-drawer v-model:show="tipDrawer" :height="200" placement="top">
-    <n-drawer-content title="提示">
-      <n-tag type="info"
-        >7:00-10:00,17:00-21:00为获取数据时间,请在结束10分钟前打卡</n-tag
-      >
-      <br />
-      <n-tag style="margin-top: 10px" type="info">打卡信息10分钟刷新</n-tag>
-    </n-drawer-content>
-  </n-drawer>
 </template>
 
 <script setup>
@@ -79,7 +67,6 @@ const { message } = createDiscreteApi(
 
 const signInList = ref([]);
 const windowWidth = ref(document.body.clientWidth);
-const tipDrawer = ref(false);
 const uIdInput = ref();
 const datePicker = ref();
 const dateFormatValue = ref();
