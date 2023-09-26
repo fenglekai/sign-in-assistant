@@ -69,6 +69,7 @@
               secondary
               circle
               type="primary"
+              :loading="reloadBtn"
               @click="reloadClick"
             >
               <template #icon>
@@ -287,12 +288,33 @@ const fetchSignInData = async (params) => {
   }
 };
 
+const wsConnection = () => {
+  reloadBtn.value = true
+  const { uId, time } = userInformation.value;
+  const socket = new WebSocket("wss://foxconn.devkai.site/api");
+  socket.onopen = () => {
+    socket.send("queryStart" + uId)
+  }
+  socket.onmessage = async ({data}) => {
+    message.info(String(data));
+    if (String(data).includes("task end")) {
+      await fetchSignInData({ uId, date: time });
+      message.success("刷新成功~");
+      reloadBtn.value = false
+      socket.close()
+    }
+  }
+  socket.onerror = (error) => {
+    console.error(error)
+    socket.close()
+  }
+}
+
+const reloadBtn = ref(false)
 const reloadClick = async () => {
   try {
-    const { uId, time } = userInformation.value;
-  if (hasUserID()) return
-    await fetchSignInData({ uId, date: time });
-    message.success("刷新成功~");
+    if (hasUserID()) return
+    wsConnection()
   } catch (error) {
     console.log(error);
   }

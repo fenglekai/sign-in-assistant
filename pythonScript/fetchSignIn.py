@@ -238,10 +238,10 @@ def get_sign_in_data(username, password, isMorning):
     return sign_in_list
 
 
-def runserver():
+def runserver(user_list):
     global GLOBAL_USERNAME
     global GLOBAL_PASSWORD
-    for item in USER_LIST:
+    for item in user_list:
         GLOBAL_USERNAME = item['username']
         GLOBAL_PASSWORD = item['password']
         get_sign_in_data(GLOBAL_USERNAME, GLOBAL_PASSWORD, IS_MORNING)
@@ -253,14 +253,14 @@ def detection_process():
         for process in process_list:
             process.kill()
 
-def main():
+def main(user_list=USER_LIST):
     # 当前时间
     now_localtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     # 当前时间（以时间区间的方式表示）
     now_time = Interval(now_localtime, now_localtime)
     print('=========%s script start===============' % now_time)
     detection_process()
-    runserver()
+    runserver(user_list)
     print('=========script end===============')
 
 

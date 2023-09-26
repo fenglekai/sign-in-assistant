@@ -6,10 +6,22 @@ import io
 import sys
 from interval import Interval
 import base64
+import json
+
+path = '/home/allen/Documents/flk-code/sign-in-assistant/pythonScript'
+
+with open("%s/static/privateConfig.json" % path) as json_file:
+    config = json.load(json_file)
+    USER_LIST = config['USER_LIST']
 
 def on_message(ws, message):
     print(message)
-    if "pythonStart" in message:
+    if "queryStart" in message:
+        msg_split = message.split("queryStart", 1)
+        username = msg_split[1]
+        print(USER_LIST)
+        user_list = [user for user in USER_LIST if user['username'] == username]
+        print(user_list)
         ws.send("python: task start")
         # 创建一个临时文件对象
         temp_stdout = io.StringIO()
@@ -21,15 +33,13 @@ def on_message(ws, message):
         # 从临时文件对象中读取内容
         output = temp_stdout.getvalue()
         print(output)
-        # 当前时间
-        now_localtime = time.strftime("%Y%m%d", time.localtime())
-        # 当前时间（以时间区间的方式表示）
-        now_time = Interval(now_localtime, now_localtime)
         ws.send("python: " + output)
+        ws.send("python: task end")
 
 def on_error(ws, error):
     ws.send("python: %s" % error)
     print(error)
+    ws.send("python: task end")
 
 def on_close(ws, close_status_code, close_msg):
     print("### closed ###")
@@ -50,9 +60,10 @@ def connection():
 
 
 if __name__ == "__main__":
-    try:
-        print("wsClient start")
-        connection()
-    except Exception as e:
-        print("连接失败: ",e)
+    while True:
+        try:
+            print("wsClient start")
+            connection()
+        except Exception as e:
+            print("连接失败: ",e)
         time.sleep(5)

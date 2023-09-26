@@ -39,10 +39,10 @@
   <n-drawer v-model:show="tipDrawer" :height="200" placement="top">
     <n-drawer-content title="提示">
       <n-tag type="info"
-        >8:00-8:15,17:30-18:00为获取数据时间,请在结束10分钟前打卡</n-tag
+        >7:00-10:00,17:00-21:00为获取数据时间,请在结束10分钟前打卡</n-tag
       >
       <br />
-      <n-tag style="margin-top: 10px" type="info">打卡信息7-10分钟刷新</n-tag>
+      <n-tag style="margin-top: 10px" type="info">打卡信息10分钟刷新</n-tag>
     </n-drawer-content>
   </n-drawer>
 </template>
