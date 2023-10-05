@@ -1,4 +1,4 @@
-# 打卡小助手V 0.1
+# 打卡小助手V 1.0
 
 ## 简介
 
@@ -8,7 +8,7 @@
 
 通过python模拟登录查询签到状态，发生数据到外部后台，再由后台存储在数据库中，最后由前端页面呈现。
 
-**预览地址：**https://foxconn.frontend-flk.site/
+**预览地址：**https://foxconn.devkai.site/
 
 ## 技术栈
 
@@ -18,7 +18,7 @@
   - ddddocr 快速识别验证码
   - pipenv 管理虚拟环境
 - node
-  - koa2 node脚手架
+  - koa2 服务端
   - mariadb 连接数据库
 - vue3
   - vue-cli vue脚手架
@@ -63,7 +63,7 @@ npm run serve
 
 ## Python部分
 
-1. 你可能需要先在`/usr/bin`添加`chromedriver`；`https://chromedriver.chromium.org/`网址是下载对应你chrome浏览器版本的`chromedriver`；
+1. 你可能需要先在`pythonScript/static`添加`chromedriver`和`chromium`；`https://vikyd.github.io/download-chromium-history-version/#/`网址是下载对应你chrome浏览器版本的`chromedriver`和`chromium`；
 2. 你可能还需要一个隐私配置，在pythonScript目录下建立`privateConfig.json`
 
 ```

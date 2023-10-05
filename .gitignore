@@ -15,6 +15,7 @@ node_modules
 packages
 logs
 __pycache__
+chrome-linux
 
 # IDEA VSCode config
 .vscode
