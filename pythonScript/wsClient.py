@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 import websocket
 import asyncio
 import time

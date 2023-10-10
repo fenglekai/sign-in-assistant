@@ -317,6 +317,14 @@ const fetchSignInData = async (params) => {
   }
 };
 
+const setTimer = (timer) => {
+  return setTimeout(() => {
+      message.error("远程响应超时");
+      reloadBtn.value = false
+      socket.close()
+    },1000*60)
+}
+
 const wsConnection = () => {
   reloadBtn.value = true
   let timer = null
@@ -324,19 +332,11 @@ const wsConnection = () => {
   const socket = new WebSocket("wss://foxconn.devkai.site/api");
   socket.onopen = () => {
     socket.send("queryStart" + uId)
-    timer = setTimeout(() => {
-      message.error("远程响应超时");
-      reloadBtn.value = false
-      socket.close()
-    },1000*10)
+    timer = setTimer()
   }
   socket.onmessage = async ({data}) => {
     clearTimeout(timer)
-    timer = setTimeout(() => {
-      message.error("远程响应超时");
-      reloadBtn.value = false
-      socket.close()
-    },1000*10)
+    timer = setTimer()
     message.info(String(data));
     if (String(data).includes("Task end")) {
       clearTimeout(timer)
