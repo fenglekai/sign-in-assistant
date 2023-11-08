@@ -1,5 +1,5 @@
 <template>
-  <n-config-provider :theme="theme">
+  <n-config-provider :theme="theme" :locale="zhCN" :date-locale="dateZhCN">
     <n-layout-header
       style="
         display: flex;
@@ -20,7 +20,7 @@
           @click="idSwitch"
         />
       </div>
-      <span style="font-size: 18px; font-weight: bold">打卡小助手</span>
+      <span style="font-size: 18px; font-weight: bold">打工人的日常</span>
       <div style="position: absolute; right: 20px">
         <n-switch v-model:value="themeSwitch">
           <template #checked-icon>
@@ -224,7 +224,7 @@ import { CheckCircle } from "@vicons/fa";
 import { Reload } from "@vicons/ionicons5";
 import { QuestionMarkOutlined } from "@vicons/material";
 import { SwitchHorizontal } from "@vicons/tabler";
-import { createDiscreteApi, darkTheme, lightTheme } from "naive-ui";
+import { createDiscreteApi, darkTheme, lightTheme, zhCN, dateZhCN } from "naive-ui";
 import DetailTable from "./DetailTable.vue";
 import httpUrl from "./httpUrl";
 
@@ -265,7 +265,7 @@ const configProviderPropsRef = computed(() => ({
   theme: themeSwitch.value ? lightTheme : darkTheme,
 }));
 
-const { message } = createDiscreteApi(
+const { message, loadingBar } = createDiscreteApi(
   ["message", "dialog", "notification", "loadingBar"],
   {
     configProviderProps: configProviderPropsRef,
@@ -300,6 +300,7 @@ const formatJsonDate = (date) => {
 
 const fetchSignInData = async (params) => {
   try {
+    if (!params.uId) return message.warning("未设置工号");
     const data = await axios.get(`${httpUrl}/signIn`, { params });
     signInList.value = data.data.data
       .map((item) => {
@@ -327,6 +328,7 @@ const setTimer = (timer) => {
 
 const wsConnection = () => {
   reloadBtn.value = true
+  loadingBar.start()
   let timer = null
   const { uId, time } = userInformation.value;
   const socket = new WebSocket("wss://foxconn.devkai.site/api");
@@ -344,11 +346,13 @@ const wsConnection = () => {
       message.success("刷新成功~");
       reloadBtn.value = false
       socket.close()
+      loadingBar.finish()
     }
   }
   socket.onerror = (error) => {
     console.error(error)
     socket.close()
+    loadingBar.error()
   }
 }
 
@@ -367,6 +371,7 @@ const idSwitch = () => {
 };
 
 const handleCheck = () => {
+  if (!uIdInput.value) return message.warning("请输入工号")
   localStorage.setItem("uId", uIdInput.value);
   userID.value = uIdInput.value;
   showModal.value = false;
