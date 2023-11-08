@@ -192,9 +192,9 @@ def get_sign_in_data(username, password, isMorning):
     # 查询考勤纪录
     # 进入侧边栏frame
     browser.switch_to.frame(aside_frame)
-    browser.find_element('id', 'TreOrgant19').click()
+    browser.find_element('id', 'TreOrgant15').click()
     time.sleep(0.5)
-    browser.find_element('id', 'TreOrgant20').click()
+    browser.find_element('id', 'TreOrgant16').click()
     time.sleep(1)
     browser.switch_to.default_content()
     # 进入主内容frame
@@ -203,9 +203,8 @@ def get_sign_in_data(username, password, isMorning):
     try:
         browser.find_element('id', 'btnSearch').click()
     except Exception as e:
-        print(e)
+        print("查询失败：%s" % e)
         browser.quit()
-        get_sign_in_data(GLOBAL_USERNAME, GLOBAL_PASSWORD, IS_MORNING)
         return
     time.sleep(1)
 
@@ -261,7 +260,7 @@ def main(user_list=USER_LIST):
     # 当前时间（以时间区间的方式表示）
     now_time = Interval(now_localtime, now_localtime)
     print('=========%s script start===============' % now_time)
-    detection_process()
+    # detection_process()
     runserver(user_list)
     print('=========script end===============')
 
