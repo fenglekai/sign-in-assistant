@@ -179,7 +179,7 @@ onMounted(() => {
             color: #18a058 !important;
             background: var(--n-border-color) !important;
         }
-        &--harf {
+        &--half {
             background: linear-gradient(to bottom, #18a058 0%, #18a058 50%, transparent 50%, transparent 100%);
         }
         &--full {
