@@ -26,6 +26,7 @@ import {
   NBackTop,
   NScrollbar,
   NEmpty,
+  NLog,
 } from "naive-ui";
 // 通用字体
 import "vfonts/Lato.css";
@@ -58,6 +59,7 @@ const naive = create({
     NBackTop,
     NScrollbar,
     NEmpty,
+    NLog,
   ],
 });
 

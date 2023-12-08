@@ -17,10 +17,9 @@ with open("%s/static/privateConfig.json" % path) as json_file:
 
 def on_message(ws, message):
     print(message)
-    if "queryStart" in message:
-        msg_split = message.split("queryStart", 1)
+    if "historyStart" in message:
+        msg_split = message.split("historyStart", 1)
         username = msg_split[1]
-        print(USER_LIST)
         user_list = [user for user in USER_LIST if user['username'] == username]
         if len(user_list) == 0: 
             ws.send("python: The query user list does not exist")
@@ -31,7 +30,28 @@ def on_message(ws, message):
         temp_stdout = io.StringIO()
         # 将标准输出重定向到临时文件对象
         sys.stdout = temp_stdout
-        fetchSignIn.main(user_list)
+        fetchSignIn.history_sigin_list(username)
+        # 恢复标准输出
+        sys.stdout = sys.__stdout__
+        # 从临时文件对象中读取内容
+        output = temp_stdout.getvalue()
+        print(output)
+        ws.send("python: " + output)
+        ws.send("python: Task end")
+    if "queryStart" in message:
+        msg_split = message.split("queryStart", 1)
+        username = msg_split[1]
+        user_list = [user for user in USER_LIST if user['username'] == username]
+        if len(user_list) == 0: 
+            ws.send("python: The query user list does not exist")
+            ws.send("python: Task end")
+            return
+        ws.send("python: Task start")
+        # 创建一个临时文件对象
+        temp_stdout = io.StringIO()
+        # 将标准输出重定向到临时文件对象
+        sys.stdout = temp_stdout
+        fetchSignIn.today_signin_list(user_list)
         # 恢复标准输出
         sys.stdout = sys.__stdout__
         # 从临时文件对象中读取内容

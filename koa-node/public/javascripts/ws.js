@@ -4,12 +4,13 @@ module.exports = wss => {
     wss.on('connection', function connection(ws) {
         ws.on('message', function incoming(message,isBinary) {
             console.log('%s', message);
-            if (message.includes("queryStart")) {
-                sendAll(ws,message,isBinary)
-            }
-            if (message.includes("python:")) {
-                sendAll(ws,message,isBinary)
-            }
+            sendAll(ws,message,isBinary)
+            // if (message.includes("queryStart")) {
+            //     sendAll(ws,message,isBinary)
+            // }
+            // if (message.includes("python:")) {
+            //     sendAll(ws,message,isBinary)
+            // }
         });
         ws.on('error', console.error);
         // setInterval(() => {

@@ -80,8 +80,7 @@
               secondary
               circle
               type="primary"
-              :loading="reloadBtn"
-              @click="reloadClick"
+              @click="handleReloadModal"
             >
               <template #icon>
                 <n-icon :component="Reload" />
@@ -165,7 +164,7 @@
     >
       2022 &copy; FengLeKai
     </n-layout-footer>
-    <!-- 弹窗 -->
+    <!-- 设置工号弹窗 -->
     <n-modal v-model:show="showModal">
       <n-card
         style="width: 300px"
@@ -196,6 +195,7 @@
         </template>
       </n-card>
     </n-modal>
+    <!-- tips弹窗 -->
     <n-drawer v-model:show="tipDrawer" placement="top">
       <n-drawer-content title="提示">
         <n-tag type="info"
@@ -213,12 +213,45 @@
         </n-tag>
       </n-drawer-content>
     </n-drawer>
+    <!-- 调用python ws弹窗 -->
+    <n-modal
+      v-model:show="showReloadModal"
+      class="custom-card"
+      preset="card"
+      :style="{width: '600px'}"
+      title="查询信息"
+      size="huge"
+      :bordered="false"
+    >
+      <n-log ref="logInst" :log="log" trim />
+      <template #footer>
+        <div class="reload-btn-wrapper">
+          <n-button
+            strong
+            secondary
+            type="primary"
+            :loading="reloadBtn"
+            @click="reloadClick"
+          >
+            查询今日
+          </n-button>
+          <n-button
+            strong
+            secondary
+            :loading="historyBtn"
+            @click="historyClick"
+          >
+            查询历史
+          </n-button>
+        </div>
+      </template>
+    </n-modal>
   </n-config-provider>
 </template>
 
 <script setup>
 import axios from "axios";
-import { onMounted, ref, computed, onUnmounted } from "vue";
+import { onMounted, ref, computed, onUnmounted, watch, nextTick } from "vue";
 import { DarkModeFilled, DarkModeOutlined } from "@vicons/material";
 import { CheckCircle } from "@vicons/fa";
 import { Reload } from "@vicons/ionicons5";
@@ -318,52 +351,57 @@ const fetchSignInData = async (params) => {
   }
 };
 
-const setTimer = (timer) => {
+const setTimer = (socket) => {
   return setTimeout(() => {
       message.error("远程响应超时");
       reloadBtn.value = false
+      historyBtn.value = false
       socket.close()
     },1000*60)
 }
 
-const wsConnection = () => {
-  reloadBtn.value = true
-  loadingBar.start()
+const wsMsgContent = ref([])
+const wsConnection = (prefix='queryStart') => {
   let timer = null
   const { uId, time } = userInformation.value;
   const socket = new WebSocket("wss://foxconn.devkai.site/api");
   socket.onopen = () => {
-    socket.send("queryStart" + uId)
-    timer = setTimer()
+    socket.send(prefix + uId)
+    timer = setTimer(socket)
   }
-  socket.onmessage = async ({data}) => {
-    clearTimeout(timer)
-    timer = setTimer()
-    message.info(String(data));
-    if (String(data).includes("Task end")) {
+
+  const promise = new Promise((resolve, reject) => {
+    socket.onmessage = async ({data}) => {
       clearTimeout(timer)
-      await fetchSignInData({ uId, date: time });
-      message.success("刷新成功~");
-      reloadBtn.value = false
-      socket.close()
-      loadingBar.finish()
+      timer = setTimer(socket)
+      wsMsgContent.value.push(prefix+String(data))
+      if (String(data).includes("Task end")) {
+        clearTimeout(timer)
+        await fetchSignInData({ uId, date: time });
+        message.success("刷新成功~");
+        socket.close()
+        resolve(true)
+      }
     }
-  }
-  socket.onerror = (error) => {
-    console.error(error)
-    socket.close()
-    loadingBar.error()
-  }
+    socket.onerror = (error) => {
+      console.error(error)
+      socket.close()
+      reject(error)
+    }
+  })
+  return promise
 }
 
 const reloadBtn = ref(false)
 const reloadClick = async () => {
   try {
     if (hasUserID()) return
-    wsConnection()
+    reloadBtn.value = true
+    await wsConnection()
   } catch (error) {
     console.log(error);
   }
+  reloadBtn.value = false
 };
 
 const idSwitch = () => {
@@ -383,6 +421,34 @@ const tipDrawer = ref(false);
 const handleDrawer = () => {
   tipDrawer.value = true
 }
+
+const showReloadModal = ref(false);
+const handleReloadModal = () => {
+  showReloadModal.value = true
+}
+
+const historyBtn = ref(false)
+const historyClick = async () => {
+  console.log(hasUserID())
+  try {
+    if (hasUserID()) return
+    historyBtn.value = true
+    await wsConnection('historyStart')
+  } catch (error) {
+    console.log(error);
+  }
+  historyBtn.value = false
+};
+
+const log = computed(() => {
+  return wsMsgContent.value.join('\n') + '\n';
+})
+const logInst = ref(null)
+watch(() => log.value, () => {
+  nextTick(() => {
+    logInst.value?.scrollTo({ position: 'bottom', silent: true })
+  })
+})
 </script>
 
 <style scoped>
@@ -391,5 +457,12 @@ const handleDrawer = () => {
 }
 .idSwitch:hover {
   color: #0e7a0d;
+}
+.reload-btn-wrapper {
+  display: flex;
+  justify-content: flex-end;
+}
+.reload-btn-wrapper > * + * {
+  margin-left: 12px;
 }
 </style>

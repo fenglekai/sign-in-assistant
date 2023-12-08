@@ -10,7 +10,7 @@ from selenium.webdriver.chrome.options import Options
 import requests
 import zipfile
 import time
-from datetime import datetime
+import datetime
 import os
 import re
 import ddddocr
@@ -30,6 +30,7 @@ with open("%s/static/privateConfig.json" % local_path) as json_file:
                'https': config['HTTP_PROXY']}
     IS_MORNING = True
     USER_LIST = config['USER_LIST']
+    HISTORY_LIST_URL = config['HISTORY_LIST_URL']
 
 
 # Chrome代理模板插件地址: https://github.com/revotu/selenium-chrome-auth-proxy
@@ -104,10 +105,10 @@ def get_sign_in_list(bs_element):
                 try:
                     sign_in_data["uId"] = cols_data[1].text
                     sign_in_data['name'] = cols_data[3].text
-                    sign_in_data['time'] = cols_data[4].text
-                    sign_in_data['machine'] = cols_data[5].text
-                    sign_in_data['readCardTime'] = cols_data[7].text
-                    sign_in_data['isEffective'] = cols_data[9].text
+                    sign_in_data['time'] = cols_data[12].text
+                    sign_in_data['machine'] = cols_data[13].text
+                    sign_in_data['readCardTime'] = cols_data[15].text
+                    sign_in_data['isEffective'] = cols_data[17].text
                 except NoSuchElementException as e:
                     continue
                 else:
@@ -145,8 +146,8 @@ def login_frame(browser, username, password):
     browser.find_element('id', 'Btn_Login').click()
 
 
-# 获取数据
-def get_sign_in_data(username, password, isMorning):
+# 创建测试浏览器
+def createBrowser():
     global browser
     # options = webdriver.ChromeOptions()
     options = Options()
@@ -172,6 +173,11 @@ def get_sign_in_data(username, password, isMorning):
     #     proxy=config['PROXY']))
     browser = webdriver.Chrome(executable_path='%s/static/chromedriver' % local_path, options=options)
     browser.get(HRM_URL)
+
+
+# 获取数据
+def get_sign_in_data(username, password, isMorning):
+    createBrowser()
     # 登录操作
     login_frame(browser, username, password)
     try:
@@ -192,9 +198,9 @@ def get_sign_in_data(username, password, isMorning):
     # 查询考勤纪录
     # 进入侧边栏frame
     browser.switch_to.frame(aside_frame)
-    browser.find_element('id', 'TreOrgant15').click()
+    browser.find_element('id', 'TreOrgant19').click()
     time.sleep(0.5)
-    browser.find_element('id', 'TreOrgant16').click()
+    browser.find_element('id', 'TreOrgant20').click()
     time.sleep(1)
     browser.switch_to.default_content()
     # 进入主内容frame
@@ -239,14 +245,6 @@ def get_sign_in_data(username, password, isMorning):
     return sign_in_list
 
 
-def runserver(user_list):
-    global GLOBAL_USERNAME
-    global GLOBAL_PASSWORD
-    for item in user_list:
-        GLOBAL_USERNAME = item['username']
-        GLOBAL_PASSWORD = item['password']
-        get_sign_in_data(GLOBAL_USERNAME, GLOBAL_PASSWORD, IS_MORNING)
-
 def detection_process():
     process_name = 'chromedriver'
     process_list = [process for process in psutil.process_iter() if process.name() == process_name]
@@ -254,18 +252,60 @@ def detection_process():
         for process in process_list:
             process.kill()
 
-def main(user_list=USER_LIST):
+
+def history_sigin_list(username,days=100):
+    # 当前时间
+    now_localtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    # 当前时间（以时间区间的方式表示）
+    now_time = Interval(now_localtime, now_localtime)
+    print('=========%s script start===============' % now_time)
+    global GLOBAL_USERNAME
+    global GLOBAL_PASSWORD
+    for item in USER_LIST:
+        if item['username'] == username:
+            GLOBAL_USERNAME = item['username']
+            GLOBAL_PASSWORD = item['password']
+            createBrowser()
+            # 登录操作
+            login_frame(browser, GLOBAL_USERNAME, GLOBAL_PASSWORD)
+            # &EmpNo=F1338718&Dates=2023/11/01%2000:00&Datee=2023/11/11%2000:00
+            EmpNo = '&EmpNo=%s' % username
+            startDate = datetime.datetime.strftime(datetime.datetime.now() - datetime.timedelta(days=days), "%Y/%m/%d")
+            endDate = datetime.datetime.strftime(datetime.datetime.now(), "%Y/%m/%d")
+            Dates = '&Dates=%s' % (startDate) + '%2000:00'
+            Datee = '&Datee=%s' % (endDate) + '%2000:00'
+            newWindow = 'window.open("%s%s%s%s")' % (HISTORY_LIST_URL,EmpNo,Dates,Datee)
+            browser.execute_script(newWindow)
+            browser.switch_to.window(browser.window_handles[1])
+            sign_in_list = get_sign_in_list(browser)
+            if len(sign_in_list):
+                insert_sign_in_data(sign_in_list)
+            else:
+                print("无打卡数据")
+            browser.quit()
+            break
+
+    print('=========script end===============')
+
+
+def today_signin_list(user_list=USER_LIST):
     # 当前时间
     now_localtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     # 当前时间（以时间区间的方式表示）
     now_time = Interval(now_localtime, now_localtime)
     print('=========%s script start===============' % now_time)
     # detection_process()
-    runserver(user_list)
+    global GLOBAL_USERNAME
+    global GLOBAL_PASSWORD
+    for item in user_list:
+        GLOBAL_USERNAME = item['username']
+        GLOBAL_PASSWORD = item['password']
+        get_sign_in_data(GLOBAL_USERNAME, GLOBAL_PASSWORD, IS_MORNING)
     print('=========script end===============')
 
 
 if __name__ == "__main__":
-    main()
+    today_signin_list()
+    # history_sigin_list('F1338718')
 
 
