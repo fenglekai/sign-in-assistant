@@ -50,7 +50,7 @@
     </div>
 </template>
 <script setup>
-import { ref, onMounted, defineProps, defineEmits } from 'vue'
+import { ref, onMounted, defineProps, defineEmits, watch } from 'vue'
 import dayjs, { Dayjs } from "dayjs";
 import { KeyboardArrowLeftOutlined, KeyboardDoubleArrowLeftOutlined, KeyboardArrowRightOutlined, KeyboardDoubleArrowRightOutlined } from '@vicons/material'
 
@@ -119,6 +119,10 @@ const handleChangeCurrent = (dayjs) => {
   dateList.value = getDateList();
   emit("change", currentDate.value);
 };
+
+watch(() => props.signInDays, () => {
+    dateList.value = getDateList();
+})
 
 onMounted(() => {
   if (props.current) {

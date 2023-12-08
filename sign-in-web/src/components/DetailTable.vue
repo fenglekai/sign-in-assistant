@@ -85,11 +85,14 @@ const dateFormatValue = ref();
 const signInDays = computed(() => {
   const res = {}
   signInList.value.forEach(item => {
-    const key = item.time.split(' ')[0]
-    if (res[key]) {
-      res[key] += 1
-    } else {
-      res[key] = 1
+    const uId = localStorage.getItem("uId")
+    if (uId === item.uId) {
+      const key = item.time.split(' ')[0];
+      if (res[key]) {
+        res[key] += 1
+      } else {
+        res[key] = 1
+      }
     }
   })
   return res
@@ -113,8 +116,12 @@ const fetchSignInData = async (params) => {
   loadingBar.start()
   try {
     const uId = localStorage.getItem("uId");
-    if (!uId) return message.warning("未设置工号");
-    const data = await axios.get(`${httpUrl}/signIn`, { params });
+    if (!uId) {
+      message.warning("未设置工号");
+      loadingBar.error();
+      return
+    };
+    const data = await axios.get(`${httpUrl}/signIn`, { params: {uId, ...params} });
     signInList.value = data.data.data
       .map((item) => {
         const formatTime = formatJsonDate(item.time);
