@@ -1,0 +1,10 @@
+services:
+  web:
+    image: node
+    restart: always
+    working_dir: /code
+    ports:
+      - 8003:8003
+    volumes:
+      - .:/code:rw
+    command: npm run start
