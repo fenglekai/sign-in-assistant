@@ -254,6 +254,9 @@ def insert_sign_in_data(data):
     if ret.status_code == 200:
         text = json.loads(ret.text)
         print(text)
+    else:
+        print("发送数据异常: %s" % ret)
+
 
 
 # 关闭浏览器
@@ -286,7 +289,7 @@ def sign_in_main():
     print(data)
 
     print("发送数据到后台...")
-    # insert_sign_in_data(data)
+    insert_sign_in_data(data)
 
     destroy()
 
