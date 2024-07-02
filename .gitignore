@@ -7,7 +7,6 @@ privateConfig.json
 
 # file
 pythonScript/chrome-proxy-extensions
-pythonScript/Profile_1
 dist
 printScreen.png
 save.png
@@ -16,6 +15,7 @@ packages
 logs
 __pycache__
 chrome-linux
+profile
 
 # IDEA VSCode config
 .vscode

@@ -1,7 +1,7 @@
 #!/bin/bash
 ps -ef | grep wsClient | awk '{print $2}' | xargs kill -9
-cd /home/allen/Documents/flk-code/sign-in-assistant/pythonScript
-cp /home/allen/Documents/flk-code/sign-in-assistant/pythonScript/logs/wsClient.log /home/allen/Documents/flk-code/sign-in-assistant/pythonScript/logs/$(date +\%Y\%m\%d)ws.log
-cat /dev/null > /home/allen/Documents/flk-code/sign-in-assistant/pythonScript/logs/wsClient.log
-nohup /home/allen/anaconda3/envs/signinpy/bin/python -u /home/allen/Documents/flk-code/sign-in-assistant/pythonScript/wsClient.py > /home/allen/Documents/flk-code/sign-in-assistant/pythonScript/logs/wsClient.log 2>&1 &
+CRTDIR=$(pwd)
+cp $(CRTDIR)/logs/wsClient.log $(CRTDIR)/logs/$(date +\%Y\%m\%d)ws.log
+cat /dev/null > $(CRTDIR)/logs/wsClient.log
+nohup /home/allen/anaconda3/envs/signinpy/bin/python -u $(CRTDIR)/wsClient.py > $(CRTDIR)/logs/wsClient.log 2>&1 &
 exit

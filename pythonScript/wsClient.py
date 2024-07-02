@@ -30,7 +30,7 @@ def on_message(ws, message):
         temp_stdout = io.StringIO()
         # 将标准输出重定向到临时文件对象
         sys.stdout = temp_stdout
-        fetchSignIn.history_sigin_list(username)
+        fetchSignIn.history_sig_in_list(username)
         # 恢复标准输出
         sys.stdout = sys.__stdout__
         # 从临时文件对象中读取内容
@@ -51,7 +51,7 @@ def on_message(ws, message):
         temp_stdout = io.StringIO()
         # 将标准输出重定向到临时文件对象
         sys.stdout = temp_stdout
-        fetchSignIn.today_signin_list(user_list)
+        fetchSignIn.today_sign_in_list(user_list)
         # 恢复标准输出
         sys.stdout = sys.__stdout__
         # 从临时文件对象中读取内容

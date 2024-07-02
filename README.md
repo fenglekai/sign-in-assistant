@@ -69,12 +69,16 @@ npm run serve
 
 ```
 {
-  "HRM_URL": "", # hrm网址
-  "BASE_URL": "http://localhost:8888/signIn", # 后台接口网址
-  "GLOBAL_USERNAME": "", # 用户名
-  "GLOBAL_PASSWORD": "", # 密码
-  "HTTP_PROXY": "", # 你的http代理
-  "PROXY": "" # 你的代理(无http://)
+  "HRM_URL": "https://hrm.myfiinet.com", # hrm网址
+  "BASE_URL": "https://frontend-flk.site/bt-sign-in/signIn", # 后台接口网址
+  "HTTP_PROXY": "http://F1338718:nEXK593K@10.191.131.156:3128", # 你的http代理
+  "PROXY": "F1338718:nEXK593K@10.191.131.156:3128", # 你的代理(无http://)
+  "USER_LIST": [
+    {
+      "username": "F1338718", # 用户名
+      "password": "Flkai19980415.." # 密码
+    }
+  ]
 }
 ```
 
@@ -83,7 +87,7 @@ npm run serve
 ### 模拟请求数据
 
 ```
-[{'uId': '9527', 'name': '无情打卡机器', 'time': '2022/08/12 08:06:22', 'machine': 'D1N1-02', 'isEffective': 'Y'}, {'uId': '9527', 'name': '无情打卡机器', 'time': '2022/08/12 17:32:50', 'machine': 'D1N1-02', 'isEffective': 'Y'}]
+[{'uId': '9527', 'name': '无情打卡机器', 'time': '2022/08/12 08:06:22', 'machine': 'machine'}, {'uId': '9527', 'name': '无情打卡机器', 'time': '2022/08/12 17:32:50', 'machine': 'machine'}]
 ```
 
 ## Node部分
