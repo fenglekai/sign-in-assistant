@@ -1,21 +1,14 @@
-const addZero = (number) => {
-  return number < 10 ? `0${number}` : number
-}
-
 export const formatJsonDate = (date) => {
-  // const formatDate = new Intl.DateTimeFormat("zh", {
-  //   year: "numeric",
-  //   month: "2-digit",
-  //   day: "2-digit",
-  //   hour: "2-digit",
-  //   minute: "2-digit",
-  //   second: "2-digit",
-  //   hour12: false,
-  // }).format(new Date(date));
-  // const res = formatDate.replaceAll('/','-')
-  const nowDate = new Date(date);
-  const res = `${nowDate.getFullYear()}-${
-    addZero(nowDate.getMonth() + 1)
-  }-${addZero(nowDate.getDate())} ${addZero(nowDate.getHours())}:${addZero(nowDate.getMinutes())}:${addZero(nowDate.getSeconds())}`;
-  return res;
+    // 匹配 ISO 8601 格式的时间戳
+    const regex = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2}).\d{3}Z$/;
+    const match = date.match(regex);
+
+    if (match) {
+        const datePart = match[1];
+        const timePart = match[2];
+        return `${datePart} ${timePart}`;
+    } else {
+        // 如果时间戳格式不匹配，返回原始值
+        return date;
+    }
 };
