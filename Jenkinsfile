@@ -1,6 +1,8 @@
 pipeline {
   environment {
     VOLUME = "/code/sign-in-assistant"
+    WEBCNG = "/sign-in-web/src/components"
+    KOACNG = "/koa-node/public/javascripts"
   }
 
   agent {
@@ -13,8 +15,8 @@ pipeline {
   stages {
     stage('Copy config') {
         steps {
-            sh 'cp ${VOLUME}/sign-in-web/src/components/httpUrl.js ${WORKSPACE}/sign-in-web/src/components'
-            sh 'cp ${VOLUME}/koa-node/public/javascripts/config.js ${WORKSPACE}/koa-node/javascripts'
+            sh 'cp ${VOLUME}${WEBCNG}/httpUrl.js ${WORKSPACE}${WEBCNG}'
+            sh 'cp ${VOLUME}${KOACNG}/config.js ${WORKSPACE}${KOACNG}'
         }
     }
 
