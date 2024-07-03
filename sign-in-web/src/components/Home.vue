@@ -260,6 +260,7 @@ import { SwitchHorizontal } from "@vicons/tabler";
 import { createDiscreteApi, darkTheme, lightTheme, zhCN, dateZhCN } from "naive-ui";
 import DetailTable from "./DetailTable.vue";
 import httpUrl from "./httpUrl";
+import {formatJsonDate} from "../utils/date.js";
 
 onMounted(() => {
   if (hasUserID()) return
@@ -318,19 +319,6 @@ const hasUserID = () => {
   return false;
 }
 
-const formatJsonDate = (date) => {
-  const formatDate = new Intl.DateTimeFormat("zh", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).format(new Date(date));
-  return formatDate;
-};
-
 const fetchSignInData = async (params) => {
   try {
     if (!params.uId) return message.warning("未设置工号");
@@ -338,7 +326,7 @@ const fetchSignInData = async (params) => {
     signInList.value = data.data.data
       .map((item) => {
         const formatTime = formatJsonDate(item.time);
-        const formatReadCardTime = formatJsonDate(item.time);
+        const formatReadCardTime = formatJsonDate(item.readCardTime);
         return {
           ...item,
           time: formatTime,

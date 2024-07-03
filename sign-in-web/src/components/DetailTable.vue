@@ -51,8 +51,8 @@ import { createDiscreteApi, darkTheme, lightTheme } from "naive-ui";
 import { Reload } from "@vicons/ionicons5";
 import httpUrl from "./httpUrl";
 import ScrollList from "./ScrollList.jsx";
-import { addDays } from 'date-fns/esm'
 import Calendar from './Calendar.vue'
+import {formatJsonDate} from "../utils/date.js";
 
 onMounted(() => {
   fetchSignInData();
@@ -97,20 +97,6 @@ const signInDays = computed(() => {
   })
   return res
 })
-
-const formatJsonDate = (date) => {
-  const formatDate = new Intl.DateTimeFormat("zh", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).format(new Date(date));
-  const res = formatDate.replaceAll('/','-')
-  return res;
-};
 
 const fetchSignInData = async (params) => {
   loadingBar.start()
