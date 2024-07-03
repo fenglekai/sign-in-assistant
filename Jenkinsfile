@@ -9,18 +9,15 @@ pipeline {
   stages {
     stage('Build sign-in-web') {
         steps {
-            sh 'cd ./sign-in-web'
-            sh 'npm install'
-            sh 'npm run build'
-            sh 'rm -rf /web-code/sign-in-web* && cp -r ./dist/* /web-code/sign-in-web'
+            sh 'pwd'
+            sh 'cd ./sign-in-web && npm install && npm run build'
+            sh 'rm -rf /web-code/sign-in-web* && cp -r ./sign-in-web/dist/* /web-code/sign-in-web'
         }
     }
     
     stage('Build koa-node') {
         steps {
-            sh 'cd ./koa-node'
-            sh 'npm install'
-            sh 'docker-compose down && docker-compose up -d'
+            sh 'cd ./koa-node && npm install && docker-compose down && docker-compose up -d'
         }
     }
 
