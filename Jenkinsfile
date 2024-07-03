@@ -1,20 +1,20 @@
 pipeline {
   environment {
-    V = "/code/sign-in-assistant"
+    VOLUME = "/code/sign-in-assistant"
   }
 
   agent {
     docker {
       image 'node:16'
-      args '-v ${V}:${V}:rw'
+      args '-v /code/sign-in-assistant":/code/sign-in-assistant":rw'
     }
 
   }
   stages {
     stage('Copy config') {
         steps {
-            sh 'cp ${V}/sign-in-web/src/components/httpUrl.js ${WORKSPACE}/sign-in-web/src/components'
-            sh 'cp ${V}/koa-node/javascripts/config.js ${WORKSPACE}/koa-node/javascripts'
+            sh 'cp ${VOLUME}/sign-in-web/src/components/httpUrl.js ${WORKSPACE}/sign-in-web/src/components'
+            sh 'cp ${VOLUME}/koa-node/javascripts/config.js ${WORKSPACE}/koa-node/javascripts'
         }
     }
 
