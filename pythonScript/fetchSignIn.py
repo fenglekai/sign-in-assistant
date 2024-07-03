@@ -83,7 +83,7 @@ def create_browser():
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option("useAutomationExtension", False)
     # 显示UI
-    # options.add_argument("--headless")
+    options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-gpu")
     options.add_argument("--start-maximized")
@@ -96,7 +96,7 @@ def create_browser():
     options.add_argument("--user-data-dir={}/static/profile".format(local_path))
 
     # 添加一个自定义的代理插件（配置特定的代理，含用户名密码认证），无法在无ui（--headless）情况下运行
-    options.add_extension(get_chrome_proxy_extension(proxy=config["PROXY"]))
+    # options.add_extension(get_chrome_proxy_extension(proxy=config["PROXY"]))
 
     service = Service(executable_path="%s/static/chromedriver" % local_path)
     browser = webdriver.Chrome(options=options, service=service)
@@ -238,7 +238,9 @@ def format_sign_in_data():
             sign_in_data["uId"] = td_list[1].text
             sign_in_data["name"] = td_list[2].text
             sign_in_data["time"] = td_list[4].text
+            sign_in_data["readCardTime"] = td_list[4].text
             sign_in_data["machine"] = td_list[5].text
+            sign_in_data["isEffective"] = "Y"
             sign_in_list.append(sign_in_data)
     except Exception as e:
         print("格式化打卡数据失败: %s" % e)
@@ -262,7 +264,8 @@ def insert_sign_in_data(data):
 # 关闭浏览器
 def destroy():
     browser.quit()
-    shutil.rmtree("chrome-proxy-extensions")
+    if os.path.exists(CUSTOM_CHROME_PROXY_EXTENSIONS_DIR):
+        shutil.rmtree(CUSTOM_CHROME_PROXY_EXTENSIONS_DIR)
 
 
 # 杀死残余进程
