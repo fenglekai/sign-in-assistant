@@ -14,7 +14,7 @@ pipeline {
     stage('Copy config') {
         steps {
             sh 'cp ${VOLUME}/sign-in-web/src/components/httpUrl.js ${WORKSPACE}/sign-in-web/src/components'
-            sh 'cp ${VOLUME}/koa-node/javascripts/config.js ${WORKSPACE}/koa-node/javascripts'
+            sh 'cp ${VOLUME}/koa-node/public/javascripts/config.js ${WORKSPACE}/koa-node/javascripts'
         }
     }
 
