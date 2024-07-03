@@ -1,27 +1,34 @@
 pipeline {
+  enviroment {
+    V = "/code/sign-in-assistant"
+  }
+
   agent {
     docker {
       image 'node:16'
-      args '-v /code/sign-in-assistant:/code/sign-in-assistant:rw'
+      args '-v ${V}:${V}:rw'
     }
 
   }
   stages {
+    stage('Copy config') {
+        steps {
+            sh 'cp ${V}/sign-in-web/src/components/httpUrl.js ${WORKSPACE}/sign-in-web/src/components'
+            sh 'cp ${V}/koa-node/javascripts/config.js ${WORKSPACE}/koa-node/javascripts'
+        }
+    }
+
     stage('Build sign-in-web') {
         steps {
-            dir(path: '/code/sign-in-assistant') {
-                sh 'pwd'
-                sh 'cd ./sign-in-web && npm install && npm run build'
-                sh 'rm -rf /web-code/sign-in-web* && cp -r ./sign-in-web/dist/* /web-code/sign-in-web'
-            }
+            sh 'pwd'
+            sh 'cd ./sign-in-web && npm install && npm run build'
+            sh 'rm -rf /web-code/sign-in-web* && cp -r ./sign-in-web/dist/* /web-code/sign-in-web'
         }
     }
     
     stage('Build koa-node') {
         steps {
-            dir(path: '/code/sign-in-assistant') {
-                sh 'cd ./koa-node && npm install && docker-compose down && docker-compose up -d'
-            }
+            sh 'cd ./koa-node && npm install && docker-compose down && docker-compose up -d'
         }
     }
 
