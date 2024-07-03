@@ -1,5 +1,5 @@
 pipeline {
-  enviroment {
+  environment {
     V = "/code/sign-in-assistant"
   }
 
