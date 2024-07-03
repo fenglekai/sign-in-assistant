@@ -13,13 +13,13 @@ pipeline {
         }
     }
 
-    stage('Initial') {
+    stage('Web initial') {
         steps {
             sh 'npm install'
         }
     }
 
-    stage('Build') {
+    stage('Web build') {
         steps {
             sh 'npm run build'
         }
@@ -37,13 +37,13 @@ pipeline {
         }
     }
 
-    stage('Initial') {
+    stage('Koa initial') {
         steps {
             sh 'npm install'
         }
     }
 
-    stage('Build') {
+    stage('Koa build') {
         steps {
             sh 'docker-compose down && docker-compose up -d'
         }
