@@ -2,7 +2,6 @@ pipeline {
   environment {
     VOLUME = "/code/sign-in-assistant"
     WEBCNG = "/sign-in-web/src/components"
-    KOACNG = "/koa-node/public/javascripts"
   }
 
   agent {
@@ -32,6 +31,9 @@ pipeline {
             
             stage('Build koa-node') {
                 steps {
+                    sh 'ssh -p 2233 root@124.223.91.248'
+                    sh 'pwd'
+                    sh 'git pull'
                     sh 'cd ${VOLUME}/koa-node && npm install && docker-compose down && docker-compose up -d'
                 }
             }
