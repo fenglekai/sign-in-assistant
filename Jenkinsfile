@@ -16,7 +16,7 @@ pipeline {
     stage('Copy files') {
         steps {
             sh 'cp ${VOLUME}${WEBCNG}/httpUrl.js ${WORKSPACE}${WEBCNG}'
-            sh 'cp ${WORKSPACE}/koa-node/* ${VOLUME}/koa-node'
+            sh 'cp -r ${WORKSPACE}/koa-node/* ${VOLUME}/koa-node'
         }
     }
 
