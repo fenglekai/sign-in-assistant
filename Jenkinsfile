@@ -25,7 +25,6 @@ pipeline {
             sh 'rm -rf /web-code/sign-in-web/* && cp -r ./sign-in-web/dist/* /web-code/sign-in-web'
         }
     }
-    }
 
     stage('Clean workspace') {
       steps {
