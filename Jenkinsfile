@@ -5,14 +5,26 @@ pipeline {
     KOACNG = "/koa-node/public/javascripts"
   }
 
-  agent any
-
+  agent {
+    docker {
+      image 'node:16'
+      args '-v /code/sign-in-assistant":/code/sign-in-assistant":rw -v /web-code/sign-in-web:/web-code/sign-in-web:rw'
+    }
+  }
+  
   stages {
+    stage('Copy files') {
+        steps {
+            sh 'cp ${VOLUME}${WEBCNG}/httpUrl.js ${WORKSPACE}${WEBCNG}'
+            sh 'cp ${WORKSPACE}/koa-node/* ${VOLUME}/koa-node'
+        }
+    }
+
     stage('Parallel build') {
         parallel {
             stage('Build sign-in-web') {
                 steps {
-                    sh 'nvm use 16'
+                    sh 'pwd'
                     sh 'cd ./sign-in-web && npm install && npm run build'
                     sh 'rm -rf /web-code/sign-in-web/* && cp -r ./sign-in-web/dist/* /web-code/sign-in-web'
                 }
@@ -20,8 +32,7 @@ pipeline {
             
             stage('Build koa-node') {
                 steps {
-                    sh 'nvm use 16'
-                    sh 'cd ${VOLUME}/koa-node && git pull && npm install && docker-compose down && docker-compose up -d'
+                    sh 'cd ${VOLUME}/koa-node && npm install && docker-compose down && docker-compose up -d'
                 }
             }
         }
