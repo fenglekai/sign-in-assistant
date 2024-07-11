@@ -1,4 +1,4 @@
-# 打卡小助手V 1.0
+# 打卡小助手
 
 ## 简介
 
@@ -15,16 +15,18 @@
   - PIL-Image 截图
   - ddddocr 快速识别验证码
   - pipenv 管理虚拟环境
+  - PyQt UI界面
+  - websocket 发送数据
 - node
   - koa2 服务端
   - mariadb 连接数据库
 - vue3
-  - vue-cli vue脚手架
+  - vue-cli vue 脚手架
   - naive-ui 组件设计风格库
   - axios 发送http请求
   - 虚拟列表组件加载大数据列表
   - 日历组件直观便捷查看打卡记录
-  - websocket通讯手动更新查询数据
+  - websocket 通讯手动更新查询数据
 
 ## 快速运行项目
 
@@ -69,14 +71,13 @@ npm run serve
 
 ```
 {
-  "HRM_URL": "https://hrm.myfiinet.com", # hrm网址
-  "BASE_URL": "https://frontend-flk.site/bt-sign-in/signIn", # 后台接口网址
-  "HTTP_PROXY": "http://F1338718:nEXK593K@10.191.131.156:3128", # 你的http代理
-  "PROXY": "F1338718:nEXK593K@10.191.131.156:3128", # 你的代理(无http://)
+  "HRM_URL": "", # hrm网址
+  "BASE_URL": "", # 后台接口网址
+  "HTTP_PROXY": "", # 你的http代理
   "USER_LIST": [
     {
-      "username": "F1338718", # 用户名
-      "password": "Flkai19980415.." # 密码
+      "username": "", # 用户名
+      "password": "" # 密码
     }
   ]
 }
@@ -90,6 +91,22 @@ npm run serve
 [{'uId': '9527', 'name': '无情打卡机器', 'time': '2022/08/12 08:06:22', 'machine': 'machine'}, {'uId': '9527', 'name': '无情打卡机器', 'time': '2022/08/12 17:32:50', 'machine': 'machine'}]
 ```
 
+### 构建应用
+
+```shell
+pyinstaller -F -w ./UI/window.py -n sign-in-assistant --add-data "./UI/resource/static/privateConfig.json:./resource/static/"
+```
+
+> WARNING: Library not found: could not resolve 'libglib-2.0.so.0', dependency of 'XXX'
+>
+> linux pyinstaller出现打包时问题，导致无法正常打开PyQt应用
+>
+> 是命令行的lib环境没有配置。在应用命令行环境如：.bashrc，配置LD_LIBRARY_PATH
+>
+> `export LD_LIBRARY_PATH=/path/to/your/libgcc_s.so.1:$LD_LIBRARY_PATH`
+
+
+
 ## Node部分
 
 你可能还需要一个数据库配置，在koa-node/public/javascripts目录下建立`config.js`
@@ -101,7 +118,7 @@ const config = {
     DATABASE: "user",
     USERNAME: "root",
     PASSWORD: "",
-    PORT: "8008",
+    PORT: "3306",
     HOST: "localhost",
   },
 };

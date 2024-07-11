@@ -18,7 +18,8 @@ import ddddocr
 import shutil
 import psutil
 
-local_path = os.getcwd()
+current_path = os.path.abspath(__file__)
+local_path = os.path.dirname(current_path) + '/resource'
 
 with open("%s/static/privateConfig.json" % local_path) as json_file:
     config = json.load(json_file)
@@ -96,7 +97,8 @@ def create_browser():
     options.add_argument("--user-data-dir={}/static/profile".format(local_path))
 
     # 添加一个自定义的代理插件（配置特定的代理，含用户名密码认证），无法在无ui（--headless）情况下运行
-    # options.add_extension(get_chrome_proxy_extension(proxy=config["PROXY"]))
+    # proxy = config["PROXY"].split("http://")[1]
+    # options.add_extension(get_chrome_proxy_extension(proxy=proxy))
 
     service = Service(executable_path="%s/static/chromedriver" % local_path)
     browser = webdriver.Chrome(options=options, service=service)

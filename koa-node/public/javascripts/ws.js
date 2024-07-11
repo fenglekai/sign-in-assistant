@@ -5,12 +5,7 @@ module.exports = wss => {
         ws.on('message', function incoming(message,isBinary) {
             console.log('%s', message);
             sendAll(ws,message,isBinary)
-            // if (message.includes("queryStart")) {
-            //     sendAll(ws,message,isBinary)
-            // }
-            // if (message.includes("python:")) {
-            //     sendAll(ws,message,isBinary)
-            // }
+
         });
         ws.on('error', console.error);
         // setInterval(() => {

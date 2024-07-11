@@ -345,7 +345,7 @@ const setTimer = (socket) => {
       reloadBtn.value = false
       historyBtn.value = false
       socket.close()
-    },1000*60)
+    },1000*10)
 }
 
 const wsMsgContent = ref([])
@@ -354,7 +354,7 @@ const wsConnection = (prefix='queryStart') => {
   const { uId, time } = userInformation.value;
   const socket = new WebSocket("wss://foxconn.devkai.site/api");
   socket.onopen = () => {
-    socket.send(prefix + uId)
+    socket.send(`[web] ${prefix} ${uId}`)
     timer = setTimer(socket)
   }
 
@@ -362,8 +362,8 @@ const wsConnection = (prefix='queryStart') => {
     socket.onmessage = async ({data}) => {
       clearTimeout(timer)
       timer = setTimer(socket)
-      wsMsgContent.value.push(prefix+String(data))
-      if (String(data).includes("Task end")) {
+      wsMsgContent.value.push(String(data))
+      if (String(data).includes("任务结束")) {
         clearTimeout(timer)
         await fetchSignInData({ uId, date: time });
         message.success("刷新成功~");

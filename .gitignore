@@ -8,6 +8,8 @@ privateConfig.json
 # file
 pythonScript/chrome-proxy-extensions
 dist
+build
+*.spec
 printScreen.png
 save.png
 node_modules
