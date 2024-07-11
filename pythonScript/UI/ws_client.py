@@ -83,7 +83,8 @@ def on_error(ws, error):
 
 def on_close(ws, close_status_code, close_msg):
     sendMsg(f"{PY_KEY} 连接关闭, 尝试重新连接")
-    connection()
+    time.sleep(3)
+    connection(console_redirect)
 
 
 def on_open(ws):
@@ -125,4 +126,4 @@ def connection(consoleRedirect=None):
 
 
 if __name__ == "__main__":
-    connection()
+    connection(console_redirect)

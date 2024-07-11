@@ -94,7 +94,7 @@ npm run serve
 ### 构建应用
 
 ```shell
-pyinstaller -F -w ./UI/window.py -n sign-in-assistant --add-data "./UI/resource/static/privateConfig.json:./resource/static/"
+pyinstaller -F -w ./UI/window.py -n sign-in-assistant --add-data "./UI/resource/static/:./resource/static/"
 ```
 
 > WARNING: Library not found: could not resolve 'libglib-2.0.so.0', dependency of 'XXX'

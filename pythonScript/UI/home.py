@@ -1,4 +1,5 @@
 import io
+import os
 import sys
 import time
 from enum import Enum
@@ -32,7 +33,9 @@ class StyleSheet(StyleSheetBase, Enum):
     NAVIGATION_VIEW_INTERFACE = "navigation_view_interface"
 
     def path(self, theme=Theme.AUTO):
-        return f"UI/resource/qss/{self.value}.qss"
+        current_path = os.path.abspath(__file__)
+        local_path = os.path.dirname(current_path)
+        return f"{local_path}/resource/qss/{self.value}.qss"
 
 
 class HomeInterface(QWidget):
@@ -103,7 +106,9 @@ class HomeInterface(QWidget):
 
     def wsConnection(self):
         try:
-            self.connectionThread = threading.Thread(target=connection, daemon=True, args=(self.consoleRedirect,))
+            self.connectionThread = threading.Thread(
+                target=connection, daemon=True, args=(self.consoleRedirect,)
+            )
             self.connectionThread.start()
             print("websocket 连接开始")
         except Exception as e:
