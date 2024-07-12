@@ -12,3 +12,5 @@ export const formatJsonDate = (date) => {
         return date;
     }
 };
+
+export default formatJsonDate

@@ -57,9 +57,7 @@
           title="今天打卡了吗"
           style="height: calc(100vh - 168px); min-height: 400px"
         >
-          <template #header>
-            今天打卡了吗
-          </template>
+          <template #header> 今天打卡了吗 </template>
           <template #header-extra>
             <div style="margin-right: 12px">
               <n-button
@@ -68,7 +66,6 @@
                 circle
                 type="info"
                 @click="handleDrawer"
-                
               >
                 <template #icon>
                   <n-icon :component="QuestionMarkOutlined" />
@@ -106,12 +103,12 @@
                 align-items: center;
               "
             >
-              <template v-if="signInList.length >= 1">
+              <template v-if="workDay.work">
                 <n-icon :component="CheckCircle" :size="60" color="#0e7a0d" />
                 <span style="font-weight: bold; font-size: 18px">
                   打卡成功，安心上班~
                 </span>
-                <span>打卡时间： {{ signInList[0].time }}</span>
+                <span>打卡时间： {{ workDay.work.time }}</span>
               </template>
               <template v-else>
                 <n-icon :component="CheckCircle" :size="60" />
@@ -131,12 +128,12 @@
                 align-items: center;
               "
             >
-              <template v-if="signInList.length >= 2">
+              <template v-if="workDay.offWork">
                 <n-icon :component="CheckCircle" :size="60" color="#0e7a0d" />
                 <span style="font-weight: bold; font-size: 18px">
                   打卡成功，冲啊！下班啦~
                 </span>
-                <span>打卡时间： {{ signInList[signInList.length-1].time }}</span>
+                <span>打卡时间： {{ workDay.offWork.time }}</span>
               </template>
               <template v-else>
                 <n-icon :component="CheckCircle" :size="60" />
@@ -218,7 +215,7 @@
       v-model:show="showReloadModal"
       class="custom-card"
       preset="card"
-      :style="{width: '600px'}"
+      :style="{ width: '600px' }"
       title="查询信息"
       size="huge"
       :bordered="false"
@@ -251,19 +248,34 @@
 
 <script setup>
 import axios from "axios";
-import { onMounted, ref, computed, onUnmounted, watch, nextTick } from "vue";
+import {
+  onMounted,
+  ref,
+  reactive,
+  computed,
+  onUnmounted,
+  watch,
+  nextTick,
+} from "vue";
 import { DarkModeFilled, DarkModeOutlined } from "@vicons/material";
 import { CheckCircle } from "@vicons/fa";
 import { Reload } from "@vicons/ionicons5";
 import { QuestionMarkOutlined } from "@vicons/material";
 import { SwitchHorizontal } from "@vicons/tabler";
-import { createDiscreteApi, darkTheme, lightTheme, zhCN, dateZhCN } from "naive-ui";
+import {
+  createDiscreteApi,
+  darkTheme,
+  lightTheme,
+  zhCN,
+  dateZhCN,
+} from "naive-ui";
 import DetailTable from "./DetailTable.vue";
 import httpUrl from "./httpUrl";
-import {formatJsonDate} from "../utils/date.js";
+import { formatJsonDate } from "../utils/date.js";
+import { workDay as getWorkDay } from "../utils/workDay.js";
 
 onMounted(() => {
-  if (hasUserID()) return
+  if (hasUserID()) return;
   const { uId, time } = userInformation.value;
   fetchSignInData({ uId, date: time });
   window.addEventListener("resize", setWindowWidth);
@@ -273,7 +285,10 @@ onUnmounted(() => {
 });
 
 const windowWidth = ref(document.body.clientWidth);
-const signInList = ref([]);
+const workDay = ref({
+  work: null,
+  offWork: null,
+});
 const userID = ref(localStorage.getItem("uId"));
 const userInformation = computed(() => {
   const date = new Date();
@@ -317,23 +332,13 @@ const hasUserID = () => {
     return true;
   }
   return false;
-}
+};
 
 const fetchSignInData = async (params) => {
   try {
     if (!params.uId) return message.warning("未设置工号");
     const data = await axios.get(`${httpUrl}/signIn`, { params });
-    signInList.value = data.data.data
-      .map((item) => {
-        const formatTime = formatJsonDate(item.time);
-        const formatReadCardTime = formatJsonDate(item.readCardTime);
-        return {
-          ...item,
-          time: formatTime,
-          readCardTime: formatReadCardTime,
-        };
-      })
-      .reverse();
+    workDay.value = {...getWorkDay(data.data.data)};
   } catch (error) {
     console.log(error);
   }
@@ -341,55 +346,55 @@ const fetchSignInData = async (params) => {
 
 const setTimer = (socket) => {
   return setTimeout(() => {
-      message.error("远程响应超时");
-      reloadBtn.value = false
-      historyBtn.value = false
-      socket.close()
-    },1000*10)
-}
+    message.error("远程响应超时");
+    reloadBtn.value = false;
+    historyBtn.value = false;
+    socket.close();
+  }, 1000 * 60);
+};
 
-const wsMsgContent = ref([])
-const wsConnection = (prefix='queryStart') => {
-  let timer = null
+const wsMsgContent = ref([]);
+const wsConnection = (prefix = "queryStart") => {
+  let timer = null;
   const { uId, time } = userInformation.value;
   const socket = new WebSocket("wss://foxconn.devkai.site/api");
   socket.onopen = () => {
-    socket.send(`[web] ${prefix} ${uId}`)
-    timer = setTimer(socket)
-  }
+    socket.send(`[web] ${prefix} ${uId}`);
+    timer = setTimer(socket);
+  };
 
   const promise = new Promise((resolve, reject) => {
-    socket.onmessage = async ({data}) => {
-      clearTimeout(timer)
-      timer = setTimer(socket)
-      wsMsgContent.value.push(String(data))
+    socket.onmessage = async ({ data }) => {
+      clearTimeout(timer);
+      timer = setTimer(socket);
+      wsMsgContent.value.push(String(data));
       if (String(data).includes("任务结束")) {
-        clearTimeout(timer)
+        clearTimeout(timer);
         await fetchSignInData({ uId, date: time });
         message.success("刷新成功~");
-        socket.close()
-        resolve(true)
+        socket.close();
+        resolve(true);
       }
-    }
+    };
     socket.onerror = (error) => {
-      console.error(error)
-      socket.close()
-      reject(error)
-    }
-  })
-  return promise
-}
+      console.error(error);
+      socket.close();
+      reject(error);
+    };
+  });
+  return promise;
+};
 
-const reloadBtn = ref(false)
+const reloadBtn = ref(false);
 const reloadClick = async () => {
   try {
-    if (hasUserID()) return
-    reloadBtn.value = true
-    await wsConnection()
+    if (hasUserID()) return;
+    reloadBtn.value = true;
+    await wsConnection();
   } catch (error) {
     console.log(error);
   }
-  reloadBtn.value = false
+  reloadBtn.value = false;
 };
 
 const idSwitch = () => {
@@ -397,7 +402,7 @@ const idSwitch = () => {
 };
 
 const handleCheck = () => {
-  if (!uIdInput.value) return message.warning("请输入工号")
+  if (!uIdInput.value) return message.warning("请输入工号");
   localStorage.setItem("uId", uIdInput.value);
   userID.value = uIdInput.value;
   showModal.value = false;
@@ -407,36 +412,39 @@ const handleCheck = () => {
 
 const tipDrawer = ref(false);
 const handleDrawer = () => {
-  tipDrawer.value = true
-}
+  tipDrawer.value = true;
+};
 
 const showReloadModal = ref(false);
 const handleReloadModal = () => {
-  showReloadModal.value = true
-}
+  showReloadModal.value = true;
+};
 
-const historyBtn = ref(false)
+const historyBtn = ref(false);
 const historyClick = async () => {
-  console.log(hasUserID())
+  console.log(hasUserID());
   try {
-    if (hasUserID()) return
-    historyBtn.value = true
-    await wsConnection('historyStart')
+    if (hasUserID()) return;
+    historyBtn.value = true;
+    await wsConnection("historyStart");
   } catch (error) {
     console.log(error);
   }
-  historyBtn.value = false
+  historyBtn.value = false;
 };
 
 const log = computed(() => {
-  return wsMsgContent.value.join('\n') + '\n';
-})
-const logInst = ref(null)
-watch(() => log.value, () => {
-  nextTick(() => {
-    logInst.value?.scrollTo({ position: 'bottom', silent: true })
-  })
-})
+  return wsMsgContent.value.join("\n") + "\n";
+});
+const logInst = ref(null);
+watch(
+  () => log.value,
+  () => {
+    nextTick(() => {
+      logInst.value?.scrollTo({ position: "bottom", silent: true });
+    });
+  }
+);
 </script>
 
 <style scoped>

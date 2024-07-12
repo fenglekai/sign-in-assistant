@@ -51,8 +51,9 @@ import { createDiscreteApi, darkTheme, lightTheme } from "naive-ui";
 import { Reload } from "@vicons/ionicons5";
 import httpUrl from "./httpUrl";
 import ScrollList from "./ScrollList.jsx";
-import Calendar from './Calendar.vue'
-import {formatJsonDate} from "../utils/date.js";
+import Calendar from "./Calendar.vue";
+import { formatJsonDate } from "../utils/date.js";
+import { isOffWorkTime } from "../utils/workDay.js";
 
 onMounted(() => {
   fetchSignInData();
@@ -83,46 +84,56 @@ const datePicker = ref();
 const dateFormatValue = ref();
 
 const signInDays = computed(() => {
-  const res = {}
-  signInList.value.forEach(item => {
-    const uId = localStorage.getItem("uId")
+  /**
+   * 数字代表签到数量
+   * 1: 上班已签到
+   * 2：上班、下班已签到
+   * {
+   *  2024-07-11: 1
+   *  2024-07-12: 2
+   * }
+   */
+  const res = {};
+  signInList.value.forEach((item) => {
+    const uId = localStorage.getItem("uId");
     if (uId === item.uId) {
-      const key = item.time.split(' ')[0];
-      if (res[key]) {
-        res[key] += 1
+      const key = item.time.split(" ")[0];
+      if (res[key] && isOffWorkTime(item.time)) {
+        res[key] += 1;
       } else {
-        res[key] = 1
+        res[key] = 1;
       }
     }
-  })
-  return res
-})
+  });
+  return res;
+});
 
 const fetchSignInData = async (params) => {
-  loadingBar.start()
+  loadingBar.start();
   try {
     const uId = localStorage.getItem("uId");
     if (!uId) {
       message.warning("未设置工号");
       loadingBar.error();
-      return
-    };
-    const data = await axios.get(`${httpUrl}/signIn`, { params: {uId, ...params} });
-    signInList.value = data.data.data
-      .map((item) => {
-        const formatTime = formatJsonDate(item.time);
-        const formatReadCardTime = formatJsonDate(item.readCardTime);
-        return {
-          ...item,
-          time: formatTime,
-          readCardTime: formatReadCardTime,
-        };
-      });
+      return;
+    }
+    const data = await axios.get(`${httpUrl}/signIn`, {
+      params: { uId, ...params },
+    });
+    signInList.value = data.data.data.map((item) => {
+      const formatTime = formatJsonDate(item.time);
+      const formatReadCardTime = formatJsonDate(item.readCardTime);
+      return {
+        ...item,
+        time: formatTime,
+        readCardTime: formatReadCardTime,
+      };
+    });
   } catch (error) {
     console.log(error);
-    return loadingBar.error()
+    return loadingBar.error();
   }
-  loadingBar.finish()
+  loadingBar.finish();
 };
 
 const reloadClick = async () => {
@@ -165,7 +176,6 @@ const pickerClear = () => {
   dateFormatValue.value = null;
   fetchSignInData();
 };
-
 </script>
 
 <style scoped></style>
