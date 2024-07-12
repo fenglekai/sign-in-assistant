@@ -56,15 +56,7 @@ def on_message(ws, message):
             sendMsg(f"{PY_KEY} {TASK_END}", ws)
             return
         sendMsg(f"{PY_KEY} 任务开始", ws)
-        # temp_stdout = io.StringIO()
-        # sys.stdout = temp_stdout
         fetch_sign_in.today_sign_in_list(user_list, ws)
-        # if console_redirect != None:
-        #     sys.stdout = console_redirect
-        # else:
-        #     sys.stdout = sys.__stdout__
-        # output = temp_stdout.getvalue()
-        # sendMsg(f"{PY_KEY}\n{output}", ws)
         sendMsg(f"{PY_KEY} {TASK_END}", ws)
 
 

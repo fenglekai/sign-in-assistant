@@ -1,12 +1,18 @@
-import io
 import os
 import sys
 import time
 from enum import Enum
 import threading
 from PyQt6.QtCore import Qt, QObject, pyqtSignal
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QTextEdit, QFrame, QVBoxLayout
-from qfluentwidgets import PushButton, SmoothScrollArea, StyleSheetBase, Theme
+from PyQt6.QtWidgets import QWidget, QTextEdit, QFrame, QVBoxLayout
+from qfluentwidgets import (
+    PrimaryToolButton,
+    SmoothScrollArea,
+    StyleSheetBase,
+    Theme,
+    FluentIcon,
+)
+import fetch_sign_in
 from ws_client import connection
 
 
@@ -53,8 +59,10 @@ class HomeInterface(QWidget):
         self.consoleRedirect.outputSignal.connect(self.handleConsole)
         sys.stdout = self.consoleRedirect
 
-        self.hBoxLayout = QHBoxLayout(self)
+        self.vBoxLayout = QVBoxLayout(self)
         self.textLayout = QVBoxLayout(self.scrollWidget)
+
+        self.sendBtn = PrimaryToolButton(FluentIcon.SEND)
 
         self.__initLayout()
         self.__initWidget()
@@ -67,9 +75,9 @@ class HomeInterface(QWidget):
         self.wsConnection()
 
     def __initLayout(self):
-        self.hBoxLayout.setContentsMargins(36, 36, 36, 36)
+        self.vBoxLayout.setContentsMargins(36, 36, 36, 36)
         self.textLayout.setAlignment(self.textEdit, Qt.AlignmentFlag.AlignTop)
-        self.textLayout.setSizeConstraint(QHBoxLayout.SizeConstraint.SetMaximumSize)
+        self.textLayout.setSizeConstraint(QVBoxLayout.SizeConstraint.SetMaximumSize)
 
     def __initWidget(self):
         self.scrollArea.setWidget(self.scrollWidget)
@@ -83,8 +91,11 @@ class HomeInterface(QWidget):
             self.handleScrollChanged
         )
 
+        self.sendBtn.clicked.connect(self.handleSendBtn)
+
         self.setTextEdit()
-        self.hBoxLayout.addWidget(self.scrollArea)
+        self.vBoxLayout.addWidget(self.sendBtn)
+        self.vBoxLayout.addWidget(self.scrollArea)
 
     def handleScrollChanged(self, minValue, maxValue):
         if self.scrollFlag:
@@ -106,10 +117,10 @@ class HomeInterface(QWidget):
 
     def wsConnection(self):
         try:
-            self.connectionThread = threading.Thread(
+            connectionThread = threading.Thread(
                 target=connection, daemon=True, args=(self.consoleRedirect,)
             )
-            self.connectionThread.start()
+            connectionThread.start()
             print("websocket 连接开始")
         except Exception as e:
             print("连接失败: ", e)
@@ -117,3 +128,7 @@ class HomeInterface(QWidget):
 
     def handleConsole(self, message):
         self.textEdit.append(message)
+
+    def handleSendBtn(self):
+        thread = threading.Thread(target=fetch_sign_in.today_sign_in_list, daemon=True)
+        thread.start()
