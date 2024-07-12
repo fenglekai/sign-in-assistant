@@ -1,16 +1,8 @@
 # -*- coding: UTF-8 -*-
 import os
-import queue
-import threading
-from PyQt6.QtWidgets import QTextEdit
 import websocket
-import asyncio
 import time
 import fetch_sign_in
-import io
-import sys
-from interval import Interval
-import base64
 import json
 
 current_path = os.path.abspath(__file__)
@@ -56,7 +48,7 @@ def on_message(ws, message):
         sendMsg(f"{PY_KEY} TODO", ws)
     if "queryStart" in message:
         msg_split = message.split("queryStart")
-        username = msg_split[1]
+        username = str(msg_split[1]).replace(" ", "")
         sendMsg(f"{PY_KEY} 当前查询用户: {username}", ws)
         user_list = [user for user in USER_LIST if user["username"] == username]
         if len(user_list) == 0:
@@ -64,15 +56,15 @@ def on_message(ws, message):
             sendMsg(f"{PY_KEY} {TASK_END}", ws)
             return
         sendMsg(f"{PY_KEY} 任务开始", ws)
-        temp_stdout = io.StringIO()
-        sys.stdout = temp_stdout
-        fetch_sign_in.today_sign_in_list(user_list)
-        if console_redirect != None:
-            sys.stdout = console_redirect
-        else:
-            sys.stdout = sys.__stdout__
-        output = temp_stdout.getvalue()
-        sendMsg(f"{PY_KEY}\n{output}", ws)
+        # temp_stdout = io.StringIO()
+        # sys.stdout = temp_stdout
+        fetch_sign_in.today_sign_in_list(user_list, ws)
+        # if console_redirect != None:
+        #     sys.stdout = console_redirect
+        # else:
+        #     sys.stdout = sys.__stdout__
+        # output = temp_stdout.getvalue()
+        # sendMsg(f"{PY_KEY}\n{output}", ws)
         sendMsg(f"{PY_KEY} {TASK_END}", ws)
 
 
@@ -94,7 +86,7 @@ def on_open(ws):
 def connection(consoleRedirect=None):
     global console_redirect
     console_redirect = consoleRedirect
-    websocket.enableTrace(True)
+    # websocket.enableTrace(True)
     ws = websocket.WebSocketApp(
         "wss://foxconn.devkai.site/api",
         on_open=on_open,

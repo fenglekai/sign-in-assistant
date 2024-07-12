@@ -6,7 +6,7 @@ chromedriver
 privateConfig.json
 
 # file
-pythonScript/chrome-proxy-extensions
+chrome-proxy-extensions
 dist
 build
 *.spec
@@ -16,7 +16,7 @@ node_modules
 packages
 logs
 __pycache__
-chrome-linux
+chrome
 profile
 
 # IDEA VSCode config
