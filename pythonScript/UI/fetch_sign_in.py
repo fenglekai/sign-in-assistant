@@ -3,7 +3,6 @@ import json
 import platform
 import re
 import signal
-import sys
 import zipfile
 from PIL import Image
 from interval import Interval
@@ -20,16 +19,21 @@ import ddddocr
 import shutil
 import psutil
 import ws_client
+import private_config
 
 current_path = os.path.abspath(__file__)
 static_path = os.path.join(os.path.dirname(current_path), "resource", "static")
 
-with open(os.path.join(static_path, "privateConfig.json")) as json_file:
-    config = json.load(json_file)
+
+def get_config():
+    config = private_config.read_config()
+    global HRM_URL
+    global BASE_URL
+    global proxies
+    global USER_LIST
     HRM_URL = config["HRM_URL"]
     BASE_URL = config["BASE_URL"]
     proxies = {"http": config["HTTP_PROXY"], "https": config["HTTP_PROXY"]}
-    IS_MORNING = True
     USER_LIST = config["USER_LIST"]
 
 
@@ -80,11 +84,21 @@ def get_chrome_proxy_extension(proxy):
         raise Exception("Invalid proxy format. Should be username:password@ip:port")
 
 
+error_count = int(0)
+
+
 # 创建测试浏览器
 def create_browser():
     global browser
+    global error_count
+
+    # 判断win添加应用后缀
+    suffix = ""
+    if platform.system().lower() == "windows":
+        suffix = ".exe"
+
     options = Options()
-    options.binary_location = os.path.join(static_path, "chrome", "chrome")
+    options.binary_location = os.path.join(static_path, "chrome", f"chrome{suffix}")
     # 防止检测
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option("useAutomationExtension", False)
@@ -105,14 +119,19 @@ def create_browser():
     # proxy = config["HTTP_PROXY"].split("http://")[1]
     # options.add_extension(get_chrome_proxy_extension(proxy=proxy))
 
-    service = Service(executable_path=os.path.join(static_path, "chromedriver"))
+    service = Service(
+        executable_path=os.path.join(static_path, f"chromedriver{suffix}")
+    )
     browser = webdriver.Chrome(options=options, service=service)
     try:
-        ws_client.sendMsg(f"即将进入：{HRM_URL}")
+        ws_client.send_msg(f"即将进入：{HRM_URL}")
         browser.get(HRM_URL)
     except Exception as e:
-        ws_client.sendMsg("打开网页异常 %s" % e, ws)
+        ws_client.send_msg("打开网页异常 %s" % e, ws)
         destroy()
+        error_count += 1
+        if error_count > 5:
+            return ws_client.send_msg("异常次数过多停止任务", ws)
         create_browser()
 
 
@@ -135,7 +154,7 @@ def use_orc():
     with open("./images/save.png", "rb") as f:
         img_bytes = f.read()
     ocr_res = ocr.classification(img_bytes)
-    ws_client.sendMsg("验证码为:", ocr_res, ws)
+    ws_client.send_msg("验证码为:", ocr_res, ws)
     browser.find_element("name", "CaptchaControl1").send_keys(ocr_res)
 
 
@@ -153,7 +172,7 @@ def check_login():
         title = browser.find_element(By.XPATH, "/html/head/title").get_attribute(
             "textContent"
         )
-        ws_client.sendMsg("进入到: %s" % title, ws)
+        ws_client.send_msg("进入到: %s" % title, ws)
         if title == "Fii 认证中心":
             login_frame()
         if title != "個人中心 - 人力資源管理系統":
@@ -162,7 +181,7 @@ def check_login():
         return True
     except Exception as e:
         print(e)
-        ws_client.sendMsg("未找到对应标识，检查登录失败", ws)
+        ws_client.send_msg("未找到对应标识，检查登录失败", ws)
         return False
 
 
@@ -176,13 +195,13 @@ def login_frame():
         login_btn = login_form.find_element(By.TAG_NAME, "button")
         login_btn.click()
     except NoSuchElementException as e:
-        ws_client.sendMsg("登录流程异常: %s" % e, ws)
+        ws_client.send_msg("登录流程异常: %s" % e, ws)
         sign_in_main()
 
 
 # 等待接口数据加载
 def wait_loading():
-    ws_client.sendMsg("等待数据加载", ws)
+    ws_client.send_msg("等待数据加载", ws)
     loading = browser.find_element(By.CLASS_NAME, "el-loading-spinner")
     display = loading.is_displayed()
     if display == True:
@@ -205,7 +224,7 @@ def get_sign_in_data():
         wait_loading()
 
         # 查询范围选择今日
-        ws_client.sendMsg("查询", ws)
+        ws_client.send_msg("查询", ws)
         content_wrapper = browser.find_element(By.CLASS_NAME, "content-wrapper")
         now_date = time_format()
         start_input = content_wrapper.find_element(
@@ -227,13 +246,13 @@ def get_sign_in_data():
 
         return format_sign_in_data()
     except Exception as e:
-        ws_client.sendMsg("获取数据失败: %s" % e, ws)
+        ws_client.send_msg("获取数据失败: %s" % e, ws)
     return []
 
 
 # 格式化打卡数据
 def format_sign_in_data():
-    ws_client.sendMsg("正在读取数据...", ws)
+    ws_client.send_msg("正在读取数据...", ws)
     sign_in_list = []
     sign_in_data = {}
     try:
@@ -252,7 +271,7 @@ def format_sign_in_data():
             sign_in_data["isEffective"] = "Y"
             sign_in_list.append(sign_in_data)
     except Exception as e:
-        ws_client.sendMsg("格式化打卡数据失败: %s" % e, ws)
+        ws_client.send_msg("格式化打卡数据失败: %s" % e, ws)
     return sign_in_list
 
 
@@ -264,9 +283,9 @@ def insert_sign_in_data(data):
     ret = requests.post(url, json=requestData, headers=headers, proxies=proxies)
     if ret.status_code == 200:
         text = json.loads(ret.text)
-        ws_client.sendMsg(str(text), ws)
+        ws_client.send_msg(str(text), ws)
     else:
-        ws_client.sendMsg("发送数据异常: %s" % ret, ws)
+        ws_client.send_msg("发送数据异常: %s" % ret, ws)
 
 
 # 关闭浏览器
@@ -283,55 +302,42 @@ def detection_process():
     process_list = [
         process for process in psutil.process_iter() if process.name() == process_name
     ]
-    ws_client.sendMsg(f"查找到chromedriver进程: {process_list}")
+    ws_client.send_msg("查找到chromedriver进程")
     if len(process_list) > 0:
         for process in process_list:
             process.kill()
-            ws_client.sendMsg(f"已终止: {process.pid}")
+            ws_client.send_msg(f"已终止: {process.pid}")
 
     # 关闭9333端口进程
     port = 9333
-    find = "-anp | grep"
-    index = 2
-    if platform.system().lower() == "windows":
-        find = "-ano | findstr"
-        index = 1
-    r = os.popen(f"netstat {find} {port}")
-    text = r.read()
-    port_process = text.split("\n")
-    ws_client.sendMsg(f"查找到{port}进程: {len(port_process)-1}")
-    for t in port_process:
-        port_arr = t.split(" ")
-        # print(port_arr)
-        if len(port_arr) > 1:
-            pid = port_arr[len(port_arr) - index]
-            if pid != "":
-                if "/" in pid:
-                    pid = pid.split("/")[0]
-                os.kill(int(pid), signal.SIGINT)
-                ws_client.sendMsg(f"已终止: {pid}")
+    ws_client.send_msg(f"查找到9333端口进程")
+    for conn in psutil.net_connections():
+        if conn.laddr.port == port and conn.status == "LISTEN":
+            p = psutil.Process(conn.pid)
+            p.kill()
+            ws_client.send_msg(f"已终止: {p.pid}")
 
 
 # 主流程
 def sign_in_main():
     create_browser()
-    ws_client.sendMsg("登录确认中...", ws)
+    ws_client.send_msg("登录确认中...", ws)
     check = check_login()
     if check == False:
         return destroy()
 
-    ws_client.sendMsg("查询今日打卡记录...", ws)
+    ws_client.send_msg("查询今日打卡记录...", ws)
     data = get_sign_in_data()
-    ws_client.sendMsg(str(data), ws)
+    ws_client.send_msg(str(data), ws)
 
-    ws_client.sendMsg("发送数据到后台...", ws)
+    ws_client.send_msg("发送数据到后台...", ws)
     insert_sign_in_data(data)
 
     destroy()
 
 
 # 今日签到数据
-def today_sign_in_list(user_list=USER_LIST, client=None):
+def today_sign_in_list(user_list=[], client=None):
     global GLOBAL_USERNAME
     global GLOBAL_PASSWORD
     global ws
@@ -340,16 +346,19 @@ def today_sign_in_list(user_list=USER_LIST, client=None):
     now_localtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     # 当前时间（以时间区间的方式表示）
     now_time = Interval(now_localtime, now_localtime)
-    ws_client.sendMsg("=========%s script start===============" % now_time, ws)
+    ws_client.send_msg("=========%s script start===============" % now_time, ws)
     detection_process()
+    get_config()
+    if len(user_list) == 0:
+        user_list = USER_LIST
 
     for item in user_list:
         GLOBAL_USERNAME = item["username"]
         GLOBAL_PASSWORD = item["password"]
         sign_in_main()
-    ws_client.sendMsg("=========script end===============", ws)
+    ws_client.send_msg("=========script end===============", ws)
 
 
 if __name__ == "__main__":
-    today_sign_in_list()
-    # detection_process()
+    # today_sign_in_list()
+    detection_process()

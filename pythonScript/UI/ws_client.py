@@ -4,6 +4,8 @@ import websocket
 import time
 import fetch_sign_in
 import json
+import private_config
+from logger import logger
 
 current_path = os.path.abspath(__file__)
 path = os.path.join(os.path.dirname(current_path), "resource")
@@ -16,14 +18,19 @@ PY_KEY = "[python]"
 TASK_END = "任务结束"
 
 
-def sendMsg(msg, ws=None):
+
+
+def send_msg(msg, ws=None):
     print(msg)
+    logger.info(msg)
     if ws:
         ws.send(msg)
 
 
 def on_message(ws, message):
     print(f"{PY_KEY} message: {message}")
+    config = private_config.read_config()
+    user_list = config["USER_LIST"]
     if "historyStart" in message:
         # msg_split = message.split("historyStart", 1)
         # username = msg_split[1]
@@ -45,48 +52,54 @@ def on_message(ws, message):
         # print(output)
         # ws.send("python: " + output)
         # ws.send("python: %s" % TASK_END)
-        sendMsg(f"{PY_KEY} TODO", ws)
+        send_msg(f"{PY_KEY} TODO", ws)
     if "queryStart" in message:
         msg_split = message.split("queryStart")
         username = str(msg_split[1]).replace(" ", "")
-        sendMsg(f"{PY_KEY} 当前查询用户: {username}", ws)
+        send_msg(f"{PY_KEY} 当前查询用户: {username}", ws)
         user_list = [user for user in USER_LIST if user["username"] == username]
         if len(user_list) == 0:
-            sendMsg(f"{PY_KEY} 需要查询的用户不存在后台，请联系管理员添加", ws)
-            sendMsg(f"{PY_KEY} {TASK_END}", ws)
+            send_msg(f"{PY_KEY} 需要查询的用户不存在后台，请联系管理员添加", ws)
+            send_msg(f"{PY_KEY} {TASK_END}", ws)
             return
-        sendMsg(f"{PY_KEY} 任务开始", ws)
+        send_msg(f"{PY_KEY} 任务开始", ws)
         fetch_sign_in.today_sign_in_list(user_list, ws)
-        sendMsg(f"{PY_KEY} {TASK_END}", ws)
+        send_msg(f"{PY_KEY} {TASK_END}", ws)
 
 
 def on_error(ws, error):
-    sendMsg(f"{PY_KEY} Error: {error}", ws)
-    sendMsg(f"{PY_KEY} {TASK_END}", ws)
+    send_msg(f"{PY_KEY} Error: {error}", ws)
+    send_msg(f"{PY_KEY} {TASK_END}", ws)
 
 
 def on_close(ws, close_status_code, close_msg):
-    sendMsg(f"{PY_KEY} 连接关闭, 尝试重新连接")
-    time.sleep(3)
-    connection(console_redirect)
+    send_msg(f"{PY_KEY} 连接关闭")
+    if manual_close != True:
+        send_msg(f"{PY_KEY} 尝试重新连接")
+        time.sleep(3)
+        connection(console_redirect)
 
 
 def on_open(ws):
-    sendMsg(f"{PY_KEY} 连接成功", ws)
+    send_msg(f"{PY_KEY} 连接成功", ws)
+
+
+ws = websocket.WebSocketApp(
+    "wss://foxconn.devkai.site/api",
+    on_open=on_open,
+    on_message=on_message,
+    on_error=on_error,
+    on_close=on_close,
+)
+
+
+manual_close = False
 
 
 def connection(consoleRedirect=None):
     global console_redirect
     console_redirect = consoleRedirect
     # websocket.enableTrace(True)
-    ws = websocket.WebSocketApp(
-        "wss://foxconn.devkai.site/api",
-        on_open=on_open,
-        on_message=on_message,
-        on_error=on_error,
-        on_close=on_close,
-    )
-
     proxy = config["HTTP_PROXY"].split("http://")[1]
     if "@" in proxy:
         user_add = proxy.split("@")
@@ -108,6 +121,11 @@ def connection(consoleRedirect=None):
         http_proxy_auth=(username, password),
     )
 
+def disconnection():
+    global manual_close
+    manual_close = True
+    ws.close()
+
 
 if __name__ == "__main__":
-    connection(console_redirect)
+    connection()

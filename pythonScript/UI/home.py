@@ -11,9 +11,11 @@ from qfluentwidgets import (
     StyleSheetBase,
     Theme,
     FluentIcon,
+    CommandBar,
+    Action,
 )
 import fetch_sign_in
-from ws_client import connection
+from ws_client import connection, disconnection
 
 
 class ConsoleRedirect(QObject):
@@ -62,7 +64,15 @@ class HomeInterface(QWidget):
         self.vBoxLayout = QVBoxLayout(self)
         self.textLayout = QVBoxLayout(self.scrollWidget)
 
-        self.sendBtn = PrimaryToolButton(FluentIcon.SEND)
+        self.commandBar = CommandBar()
+
+        self.action = Action(
+            FluentIcon.PLAY,
+            "连接启动",
+            checkable=True,
+            toggled=lambda: self.handleActionCheck(),
+        )
+        self.action.setChecked(True)
 
         self.__initLayout()
         self.__initWidget()
@@ -72,7 +82,7 @@ class HomeInterface(QWidget):
         self.scrollWidget.setObjectName("scrollWidget")
         StyleSheet.HOME_INTERFACE.apply(self)
 
-        self.wsConnection()
+        # self.wsConnection()
 
     def __initLayout(self):
         self.vBoxLayout.setContentsMargins(36, 36, 36, 36)
@@ -91,10 +101,19 @@ class HomeInterface(QWidget):
             self.handleScrollChanged
         )
 
-        self.sendBtn.clicked.connect(self.handleSendBtn)
+        self.commandBar.addAction(
+            Action(FluentIcon.SEND, "执行任务", triggered=lambda: self.handleSendBtn())
+        )
+        self.commandBar.addSeparator()
+
+        self.commandBar.addActions(
+            [
+                self.action,
+            ]
+        )
 
         self.setTextEdit()
-        self.vBoxLayout.addWidget(self.sendBtn)
+        self.vBoxLayout.addWidget(self.commandBar)
         self.vBoxLayout.addWidget(self.scrollArea)
 
     def handleScrollChanged(self, minValue, maxValue):
@@ -115,16 +134,25 @@ class HomeInterface(QWidget):
         self.textEdit.setMinimumHeight(height)
         self.scrollFlag = True
 
+    def handleActionCheck(self):
+        if self.action.isChecked():
+            self.wsConnection()
+        else:
+            self.wsDisconnection()
+
     def wsConnection(self):
         try:
-            connectionThread = threading.Thread(
+            self.connectionThread = threading.Thread(
                 target=connection, daemon=True, args=(self.consoleRedirect,)
             )
-            connectionThread.start()
+            self.connectionThread.start()
             print("websocket 连接开始")
         except Exception as e:
             print("连接失败: ", e)
-            time.sleep(5)
+
+    def wsDisconnection(self):
+        disconnection()
+        self.connectionThread.join()
 
     def handleConsole(self, message):
         self.textEdit.append(message)
