@@ -22,9 +22,9 @@ import psutil
 import ws_client
 
 current_path = os.path.abspath(__file__)
-local_path = os.path.dirname(current_path) + "/resource"
+static_path = os.path.join(os.path.dirname(current_path), "resource", "static")
 
-with open("%s/static/privateConfig.json" % local_path) as json_file:
+with open(os.path.join(static_path, "privateConfig.json")) as json_file:
     config = json.load(json_file)
     HRM_URL = config["HRM_URL"]
     BASE_URL = config["BASE_URL"]
@@ -34,9 +34,11 @@ with open("%s/static/privateConfig.json" % local_path) as json_file:
 
 
 # Chrome代理模板插件地址: https://github.com/revotu/selenium-chrome-auth-proxy
-CHROME_PROXY_HELPER_DIR = f"{local_path}/static/chrome-proxy-helper"
+CHROME_PROXY_HELPER_DIR = os.path.join(static_path, "chrome-proxy-helper")
 # 存储自定义Chrome代理扩展文件的目录
-CUSTOM_CHROME_PROXY_EXTENSIONS_DIR = f"{local_path}/static/chrome-proxy-extensions"
+CUSTOM_CHROME_PROXY_EXTENSIONS_DIR = os.path.join(
+    static_path, "chrome-proxy-extensions"
+)
 
 
 # 设置selenium的chrome代理
@@ -82,7 +84,7 @@ def get_chrome_proxy_extension(proxy):
 def create_browser():
     global browser
     options = Options()
-    options.binary_location = "%s/static/chrome/chrome" % local_path
+    options.binary_location = os.path.join(static_path, "chrome", "chrome")
     # 防止检测
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option("useAutomationExtension", False)
@@ -97,13 +99,13 @@ def create_browser():
     options.add_argument("--window-size=1280,960")
     options.add_argument("--remote-debugging-port=9333")
     # options.add_argument("--profile-directory=profile")
-    # options.add_argument("--user-data-dir={}/static/profile".format(local_path))
+    # options.add_argument("--user-data-dir={}".format(os.path.join(static_path, "profile")))
 
     # 添加一个自定义的代理插件（配置特定的代理，含用户名密码认证），无法在无ui（--headless）情况下运行，解决："--headless=chrome"可以添加代理
-    proxy = config["HTTP_PROXY"].split("http://")[1]
-    options.add_extension(get_chrome_proxy_extension(proxy=proxy))
+    # proxy = config["HTTP_PROXY"].split("http://")[1]
+    # options.add_extension(get_chrome_proxy_extension(proxy=proxy))
 
-    service = Service(executable_path="%s/static/chromedriver" % local_path)
+    service = Service(executable_path=os.path.join(static_path, "chromedriver"))
     browser = webdriver.Chrome(options=options, service=service)
     try:
         ws_client.sendMsg(f"即将进入：{HRM_URL}")
@@ -303,7 +305,7 @@ def detection_process():
         # print(port_arr)
         if len(port_arr) > 1:
             pid = port_arr[len(port_arr) - index]
-            if pid != '':
+            if pid != "":
                 if "/" in pid:
                     pid = pid.split("/")[0]
                 os.kill(int(pid), signal.SIGINT)

@@ -6,9 +6,9 @@ import fetch_sign_in
 import json
 
 current_path = os.path.abspath(__file__)
-path = os.path.dirname(current_path) + "/resource"
+path = os.path.join(os.path.dirname(current_path), "resource")
 
-with open("%s/static/privateConfig.json" % path) as json_file:
+with open(os.path.join(path, "static", "privateConfig.json")) as json_file:
     config = json.load(json_file)
     USER_LIST = config["USER_LIST"]
 
