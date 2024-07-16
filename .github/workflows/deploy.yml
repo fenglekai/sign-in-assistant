@@ -74,7 +74,7 @@ jobs:
 
       - name: Build the application
         run: |
-          pyinstaller -F -w pythonScript/UI/window.py -n sign-in-assistant --add-data "pythonScript/UI/resource/:pythonScript/resource/"
+          pyinstaller -F -w pythonScript/UI/window.py -n sign-in-assistant --add-data "pythonScript/UI/resource/:./resource/"
       
       - name: Upload artifact for windows
         if: ${{ matrix.os == 'windows-latest' }}
