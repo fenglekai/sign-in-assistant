@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 import os
+import threading
 import websocket
 import time
 import fetch_sign_in
@@ -91,15 +92,13 @@ ws = websocket.WebSocketApp(
     on_error=on_error,
     on_close=on_close,
 )
+# websocket.enableTrace(True)
 
 
 manual_close = False
 
 
-def connection(consoleRedirect=None):
-    global console_redirect
-    console_redirect = consoleRedirect
-    # websocket.enableTrace(True)
+def run():
     proxy = config["HTTP_PROXY"].split("http://")[1]
     if "@" in proxy:
         user_add = proxy.split("@")
@@ -112,19 +111,37 @@ def connection(consoleRedirect=None):
             ip_port = proxy.split(":")
             ip = ip_port[0]
             port = ip_port[1]
-
     ws.run_forever(
-        reconnect=5,
+        reconnect=1,
         proxy_type="http",
         http_proxy_host=ip,
         http_proxy_port=port,
         http_proxy_auth=(username, password),
+        ping_timeout= 5,
+        http_proxy_timeout= 5.0,
     )
+
+
+
+
+
+def connection(consoleRedirect=None):
+    global console_redirect
+    console_redirect = consoleRedirect
+
+    connectionThread = threading.Thread(
+        target=run, daemon=True
+    )
+    connectionThread.start()
+
 
 def disconnection():
     global manual_close
     manual_close = True
+    ws.keep_running = False
     ws.close()
+    send_msg(f"{PY_KEY} 连接关闭")
+    # connectionThread.join()
 
 
 if __name__ == "__main__":

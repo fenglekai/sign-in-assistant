@@ -1,21 +1,17 @@
 import os
 import sys
-import time
-from enum import Enum
 import threading
 from PyQt6.QtCore import Qt, QObject, pyqtSignal
 from PyQt6.QtWidgets import QWidget, QTextEdit, QFrame, QVBoxLayout
 from qfluentwidgets import (
-    PrimaryToolButton,
     SmoothScrollArea,
-    StyleSheetBase,
-    Theme,
     FluentIcon,
     CommandBar,
     Action,
 )
 import fetch_sign_in
 from ws_client import connection, disconnection
+from style import StyleSheet
 
 
 class ConsoleRedirect(QObject):
@@ -28,24 +24,6 @@ class ConsoleRedirect(QObject):
         pass
 
 
-class StyleSheet(StyleSheetBase, Enum):
-    """Style sheet"""
-
-    LINK_CARD = "link_card"
-    SAMPLE_CARD = "sample_card"
-    HOME_INTERFACE = "home_interface"
-    ICON_INTERFACE = "icon_interface"
-    VIEW_INTERFACE = "view_interface"
-    SETTING_INTERFACE = "setting_interface"
-    GALLERY_INTERFACE = "gallery_interface"
-    NAVIGATION_VIEW_INTERFACE = "navigation_view_interface"
-
-    def path(self, theme=Theme.AUTO):
-        current_path = os.path.abspath(__file__)
-        local_path = os.path.dirname(current_path)
-        return f"{local_path}/resource/qss/{self.value}.qss"
-
-
 class HomeInterface(QWidget):
     """Home interface"""
 
@@ -53,8 +31,8 @@ class HomeInterface(QWidget):
         super().__init__(parent=parent)
         self.view = QFrame(self)
         self.scrollArea = SmoothScrollArea(self.view)
-        self.scrollFlag = False
         self.scrollWidget = QWidget(self.scrollArea)
+        self.scrollFlag = False
         self.textEdit = QTextEdit()
 
         self.consoleRedirect = ConsoleRedirect()
@@ -64,7 +42,7 @@ class HomeInterface(QWidget):
         self.vBoxLayout = QVBoxLayout(self)
         self.textLayout = QVBoxLayout(self.scrollWidget)
 
-        self.commandBar = CommandBar()
+        self.commandBar = CommandBar(self)
 
         self.action = Action(
             FluentIcon.PLAY,
@@ -77,7 +55,7 @@ class HomeInterface(QWidget):
         self.__initLayout()
         self.__initWidget()
 
-        self.setObjectName("basicInputInterface")
+        self.setObjectName("homeInterface")
         self.scrollArea.setObjectName("scrollArea")
         self.scrollWidget.setObjectName("scrollWidget")
         StyleSheet.HOME_INTERFACE.apply(self)
@@ -101,11 +79,11 @@ class HomeInterface(QWidget):
             self.handleScrollChanged
         )
 
+        self.commandBar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.commandBar.addAction(
             Action(FluentIcon.SEND, "执行任务", triggered=lambda: self.handleSendBtn())
         )
         self.commandBar.addSeparator()
-
         self.commandBar.addActions(
             [
                 self.action,
@@ -141,18 +119,13 @@ class HomeInterface(QWidget):
             self.wsDisconnection()
 
     def wsConnection(self):
-        try:
-            self.connectionThread = threading.Thread(
-                target=connection, daemon=True, args=(self.consoleRedirect,)
-            )
-            self.connectionThread.start()
-            print("websocket 连接开始")
-        except Exception as e:
-            print("连接失败: ", e)
+        connection(self.consoleRedirect)
+        print("websocket 连接开始")
+
 
     def wsDisconnection(self):
         disconnection()
-        self.connectionThread.join()
+        print("websocket 连接中止")
 
     def handleConsole(self, message):
         self.textEdit.append(message)

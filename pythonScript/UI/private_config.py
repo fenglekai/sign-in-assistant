@@ -14,5 +14,5 @@ def read_config():
 
 
 def write_config(config):
-    with open(os.path.join(static_path, "privateConfig.json")) as json_file:
+    with open(os.path.join(static_path, "privateConfig.json"), 'w') as json_file:
         json_file.write(json.dumps(config, indent=2, ensure_ascii=False))

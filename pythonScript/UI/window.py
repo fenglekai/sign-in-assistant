@@ -12,6 +12,7 @@ from qfluentwidgets import (
 )
 from qfluentwidgets import FluentIcon as FIF
 from home import HomeInterface
+from setting import SettingInterface
 
 
 class Widget(QFrame):
@@ -34,7 +35,8 @@ class Window(MSFluentWindow):
 
         # create sub interface
         self.homeInterface = HomeInterface(self)
-        self.settingInterface = Widget("待开发中", self)
+        # self.settingInterface = Widget("待开发中", self)
+        self.settingInterface = SettingInterface(self)
 
         self.initNavigation()
         self.initWindow()
