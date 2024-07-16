@@ -1,0 +1,120 @@
+name: deploy
+
+on:
+  push:
+    tags:
+      - "v*"
+    paths:
+      - "src/**"
+      - "pythonScript/**"
+      - "!**/*.md"
+      - ".github/workflows/deploy.yml"
+
+jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+          ref: startsWith(github.ref, 'refs/tags/')
+
+      - name: Get version
+        id: get_version
+        run: |
+          echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+
+      - name: Output version
+        id: version
+        run: |
+          echo "The version is ${{ steps.get_version.outputs.VERSION }}"
+          echo "version=$(echo ${{ steps.get_version.outputs.VERSION }} | tr -d '"')" >> $GITHUB_OUTPUT
+          echo "release_tag=$(echo v${{ steps.get_version.outputs.VERSION }} | tr -d '"')" >> $GITHUB_OUTPUT
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      release_tag: ${{ steps.version.outputs.release_tag }}
+
+  pyinstaller:
+    needs: create-tag
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            build: "build:linux"
+
+          - os: windows-latest
+            build: "build:win"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+          ref: startsWith(github.ref, 'refs/tags/')
+
+      - name: Setup Node.js environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+
+      - name: Check release tag
+        run: echo "The release_tag is ${{ needs.create-tag.outputs.release_tag }}"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+
+      - name: Build the application
+        run: |
+          pyinstaller -F -w pythonScript/UI/window.py -n sign-in-assistant --add-data "pythonScript/UI/resource/:pythonScript/resource/"
+      
+      - name: Upload artifact for windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: sign-in-assistant-win
+          path: |
+            dist/*.exe
+
+      - name: Upload artifact for linux
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: sign-in-assistant-linux
+          path: |
+            dist/*
+
+  release:
+    needs: [create-tag, pyinstaller]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+          ref: startsWith(github.ref, 'refs/tags/')
+
+      - name: Download artifact file for windows
+        uses: actions/download-artifact@v4
+        with:
+          name: sign-in-assistant-win
+          path: package
+
+      - name: Download artifact file for linux
+        uses: actions/download-artifact@v4
+        with:
+          name: sign-in-assistant-linux
+          path: package
+
+      - name: Release to Github
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ github.token }}"
+          prerelease: false
+          files: |
+            package/*
