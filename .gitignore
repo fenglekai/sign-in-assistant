@@ -3,7 +3,6 @@ koa-node/public/javascripts/config.js
 pythonScript/privateConfig.json
 sign-in-web/src/components/httpUrl.js
 chromedriver
-privateConfig.json
 
 # file
 chrome-proxy-extensions
