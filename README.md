@@ -33,7 +33,7 @@
 ### python
 
 ```
-pip install
+pip install -r pythonScprit/requirements.txt
 python ./UI/window.py
 ```
 
