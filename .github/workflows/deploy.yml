@@ -75,26 +75,30 @@ jobs:
       - name: Build the application
         run: |
           pyinstaller -D -w pythonScript/UI/window.py -n sign-in-assistant --add-data "pythonScript/UI/resource/:./resource/"
-      
-      - name: Output zip 
+
+      - name: Check build
+        run: |
+          ls dist/sign-in-assistant
+
+      - name: Output zip in windows
         if: ${{ matrix.os == 'windows-latest' }}
         uses: montudor/action-zip@v1
         with:
-          args: zip -qq -r dist/sign-in-assistant-win.zip dist/sign-in-assistant/*
+          args: zip -qq -r sign-in-assistant-win.zip dist/sign-in-assistant/*
       
-      - name: Output zip 
+      - name: Output zip in linux
         if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: montudor/action-zip@v1
         with:
-          args: zip -qq -r dist/sign-in-assistant-linux.zip dist/sign-in-assistant/*
+          args: zip -qq -r sign-in-assistant-linux.zip dist/sign-in-assistant/*
 
       - name: Upload artifact for windows
-        if: ${{ matrix.os == 'windows-latest' }}
         uses: actions/upload-artifact@v4
         with:
-          name: sign-in-assistant-win
+          name: sign-in-assistant
           path: |
-            sign-in-assistant.zip
+            sign-in-assistant-win.zip
+            sign-in-assistant-linux.zip
 
   release:
     needs: [create-tag, pyinstaller]
@@ -110,13 +114,7 @@ jobs:
       - name: Download artifact file for windows
         uses: actions/download-artifact@v4
         with:
-          name: sign-in-assistant-win
-          path: package
-
-      - name: Download artifact file for linux
-        uses: actions/download-artifact@v4
-        with:
-          name: sign-in-assistant-linux
+          name: sign-in-assistant
           path: package
 
       - name: Release to Github
