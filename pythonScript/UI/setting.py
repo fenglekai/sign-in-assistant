@@ -107,7 +107,7 @@ class SettingInterface(ScrollArea):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        StyleSheet.HOME_INTERFACE.apply(self)
+        StyleSheet.SETTING_INTERFACE.apply(self)
 
         self.view = QWidget(self)
         self.vBoxLayout = QVBoxLayout(self.view)
@@ -142,6 +142,7 @@ class SettingInterface(ScrollArea):
 
         self.updateListItem()
 
+        self.view.setObjectName('view')
         self.setObjectName("settingInterface")
 
     def updateListItem(self):

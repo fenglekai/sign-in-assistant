@@ -1,0 +1,9 @@
+#settingInterface {
+    border: none;
+    border-radius: 10px;
+    background-color: transparent;
+}
+
+#view {
+    background-color: transparent;
+}
