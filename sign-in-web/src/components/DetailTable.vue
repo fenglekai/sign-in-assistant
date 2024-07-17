@@ -98,10 +98,10 @@ const signInDays = computed(() => {
     const uId = localStorage.getItem("uId");
     if (uId === item.uId) {
       const key = item.time.split(" ")[0];
-      if (res[key] && isOffWorkTime(item.time)) {
-        res[key] += 1;
-      } else {
-        res[key] = 1;
+      
+      if (!res[key]) res[key] = 1;
+      if (isOffWorkTime(item.time)) {
+        res[key] = 2;
       }
     }
   });
