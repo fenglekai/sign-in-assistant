@@ -254,7 +254,7 @@ def get_sign_in_data(start_date, end_date):
 def format_sign_in_data():
     ws_client.send_msg("正在读取数据...", ws)
     sign_in_list = []
-    sign_in_data = {}
+
     try:
         wrapper = browser.find_elements(
             By.XPATH, "//div[@class='wz-wrapper wizzy box-card']"
@@ -263,6 +263,7 @@ def format_sign_in_data():
         tr_list = table[1].find_elements(By.TAG_NAME, "tr")
         for _, row in enumerate(tr_list):
             td_list = row.find_elements(By.XPATH, "td/div")
+            sign_in_data = {}
             sign_in_data["uId"] = td_list[1].text
             sign_in_data["name"] = td_list[2].text
             sign_in_data["time"] = td_list[4].text
@@ -365,5 +366,5 @@ def fetch_sign_in_list(user_list=[], client=None, range_date=[]):
 
 
 if __name__ == "__main__":
-    fetch_sign_in_list()
+    fetch_sign_in_list(range_date=["2024/07/16", "2024/07/16"])
     # detection_process()
