@@ -11,12 +11,8 @@ from logger import logger
 current_path = os.path.abspath(__file__)
 path = os.path.join(os.path.dirname(current_path), "resource")
 
-
-def get_config():
-    config = private_config.read_config()
-    global HTTP_PROXY
-    global USER_LIST
-    HTTP_PROXY = config["HTTP_PROXY"]
+with open(os.path.join(path, "static", "privateConfig.json")) as json_file:
+    config = json.load(json_file)
     USER_LIST = config["USER_LIST"]
 
 PY_KEY = "[python]"
@@ -103,8 +99,7 @@ manual_close = False
 
 
 def run():
-    get_config()
-    proxy = HTTP_PROXY.split("http://")[1]
+    proxy = config["HTTP_PROXY"].split("http://")[1]
     if "@" in proxy:
         user_add = proxy.split("@")
         if ":" in user_add[0]:
