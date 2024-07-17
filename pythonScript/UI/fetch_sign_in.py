@@ -210,7 +210,7 @@ def wait_loading():
 
 
 # 获取数据
-def get_sign_in_data():
+def get_sign_in_data(start_date, end_date):
     try:
         browser.implicitly_wait(10)
         # 菜单选择
@@ -223,22 +223,22 @@ def get_sign_in_data():
 
         wait_loading()
 
-        # 查询范围选择今日
+        # 查询范围选择
         ws_client.send_msg("查询", ws)
+        ws_client.send_msg(f"时间范围{start_date} - {end_date}", ws)
         content_wrapper = browser.find_element(By.CLASS_NAME, "content-wrapper")
-        now_date = time_format()
         start_input = content_wrapper.find_element(
             By.XPATH, "//input[@placeholder='開始日期']"
         )
         start_input.click()
         start_input.clear()
-        start_input.send_keys(now_date)
+        start_input.send_keys(start_date)
         end_input = content_wrapper.find_element(
             By.XPATH, "//input[@placeholder='結束日期']"
         )
         end_input.click()
         end_input.clear()
-        end_input.send_keys(now_date)
+        end_input.send_keys(end_date)
         queryBtn = content_wrapper.find_element(By.TAG_NAME, "button")
         queryBtn.click()
         time.sleep(1)
@@ -319,15 +319,15 @@ def detection_process():
 
 
 # 主流程
-def sign_in_main():
+def sign_in_main(start_date, end_date):
     create_browser()
     ws_client.send_msg("登录确认中...", ws)
     check = check_login()
     if check == False:
         return destroy()
 
-    ws_client.send_msg("查询今日打卡记录...", ws)
-    data = get_sign_in_data()
+    ws_client.send_msg("查询打卡记录...", ws)
+    data = get_sign_in_data(start_date, end_date)
     ws_client.send_msg(str(data), ws)
 
     ws_client.send_msg("发送数据到后台...", ws)
@@ -336,8 +336,8 @@ def sign_in_main():
     destroy()
 
 
-# 今日签到数据
-def today_sign_in_list(user_list=[], client=None):
+# 获取签到列表
+def fetch_sign_in_list(user_list=[], client=None, range_date=[]):
     global GLOBAL_USERNAME
     global GLOBAL_PASSWORD
     global ws
@@ -347,18 +347,23 @@ def today_sign_in_list(user_list=[], client=None):
     # 当前时间（以时间区间的方式表示）
     now_time = Interval(now_localtime, now_localtime)
     ws_client.send_msg("=========%s script start===============" % now_time, ws)
-    detection_process()
     get_config()
     if len(user_list) == 0:
         user_list = USER_LIST
 
-    for item in user_list:
-        GLOBAL_USERNAME = item["username"]
-        GLOBAL_PASSWORD = item["password"]
-        sign_in_main()
+    now_date = time_format()
+    if len(range_date) < 2:
+        range_date.clear()
+        range_date.append(now_date)
+        range_date.append(now_date)
+
+    for user in user_list:
+        GLOBAL_USERNAME = user["username"]
+        GLOBAL_PASSWORD = user["password"]
+        sign_in_main(range_date[0], range_date[1])
     ws_client.send_msg("=========script end===============", ws)
 
 
 if __name__ == "__main__":
-    # today_sign_in_list()
-    detection_process()
+    fetch_sign_in_list()
+    # detection_process()

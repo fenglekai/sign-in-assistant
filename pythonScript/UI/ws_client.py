@@ -68,7 +68,7 @@ def on_message(ws, message):
             send_msg(f"{PY_KEY} {TASK_END}", ws)
             return
         send_msg(f"{PY_KEY} 任务开始", ws)
-        fetch_sign_in.today_sign_in_list(user_list, ws)
+        fetch_sign_in.fetch_sign_in_list(user_list, ws)
         send_msg(f"{PY_KEY} {TASK_END}", ws)
 
 
