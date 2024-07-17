@@ -84,13 +84,13 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         uses: montudor/action-zip@v1
         with:
-          args: zip -qq -r sign-in-assistant-win.zip dist/sign-in-assistant/*
+          args: zip -qq -r sign-in-assistant-win.zip ${{ github.workspace }}/dist/sign-in-assistant/*
       
       - name: Output zip in linux
         if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: montudor/action-zip@v1
         with:
-          args: zip -qq -r sign-in-assistant-linux.zip dist/sign-in-assistant/*
+          args: zip -qq -r sign-in-assistant-linux.zip ${{ github.workspace }}/dist/sign-in-assistant/*
 
       - name: Upload artifact for windows
         uses: actions/upload-artifact@v4
