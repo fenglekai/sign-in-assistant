@@ -81,14 +81,14 @@ jobs:
         run: |
           ls dist/sign-in-assistant
           mkdir -p sign-in-assistant-win
-          mv -r dist/sign-in-assistant/* sign-in-assistant-win/
+          mv dist/sign-in-assistant/* sign-in-assistant-win/
 
       - name: Copy build in linux
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           ls dist/sign-in-assistant
           mkdir -p sign-in-assistant-linux
-          mv -r dist/sign-in-assistant/* sign-in-assistant-linux/
+          mv dist/sign-in-assistant/* sign-in-assistant-linux/
 
       - name: Upload artifact for windows
         uses: actions/upload-artifact@v4
