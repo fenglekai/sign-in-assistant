@@ -7,12 +7,14 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QTableWidgetItem,
     QHeaderView,
+    QSizePolicy,
 )
 from qfluentwidgets import (
     LineEdit,
     BodyLabel,
     CardWidget,
     TableWidget,
+    TitleLabel,
     SubtitleLabel,
     ScrollArea,
     PrimaryPushButton,
@@ -34,8 +36,10 @@ class FormItem(QWidget):
         self.label = BodyLabel(label + ":", self)
 
         self.lineEdit.setClearButtonEnabled(True)
+        self.hBoxLayout.setSpacing(24)
         self.hBoxLayout.addWidget(self.label)
         self.hBoxLayout.addWidget(self.lineEdit)
+        self.hBoxLayout.setContentsMargins(0, 0, 0, 12)
         self.setObjectName("formItem")
 
 
@@ -82,6 +86,7 @@ class UserTable(CardWidget):
             QHeaderView.ResizeMode.Stretch
         )
         self.table.verticalHeader().hide()
+        self.table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.vBoxLayout.setContentsMargins(24, 24, 24, 24)
 
         # 添加表格数据
@@ -89,7 +94,7 @@ class UserTable(CardWidget):
 
         # 设置水平表头并隐藏垂直表头
         self.table.setHorizontalHeaderLabels(header)
-        self.table.setFixedSize(self.width() + 48, 300)
+        self.table.setMinimumHeight(300)
 
         self.vBoxLayout.addWidget(self.table)
         self.setObjectName("userTable")
@@ -109,19 +114,34 @@ class SettingInterface(ScrollArea):
         super().__init__(parent=parent)
         StyleSheet.SETTING_INTERFACE.apply(self)
 
+        self.title = TitleLabel("设置", self)
         self.view = QWidget(self)
         self.vBoxLayout = QVBoxLayout(self.view)
+        self.formWidget = QWidget()
+        self.formLayout = QVBoxLayout(self.formWidget)
+        self.signInUrl = FormItem("签到地址")
+        self.updateUrl = FormItem("上传接口")
+        self.proxyUrl = FormItem("代理地址")
+        self.saveButton = PrimaryPushButton("保存")
         self.userForm = FormItem("账号")
         self.passForm = FormItem("密码")
         self.addButton = PrimaryPushButton("添加")
         self.table = UserTable(header=["账号", "密码"], list=[])
         self.stateTooltip = None
+        self.config = None
 
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setWidget(self.view)
         self.setWidgetResizable(True)
-        self.vBoxLayout.setContentsMargins(36, 36, 36, 36)
+        self.vBoxLayout.setContentsMargins(36, 20, 36, 36)
         self.vBoxLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        
+        self.saveButton.setFixedWidth(120)
+        self.saveButton.clicked.connect(
+            lambda: self.updateConfig()
+        )
+        self.formLayout.setContentsMargins(0, 0, 0, 0)
+        self.formLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.userForm.lineEdit.text()
         self.addButton.clicked.connect(
             lambda: self.addListItem(
@@ -129,9 +149,14 @@ class SettingInterface(ScrollArea):
             )
         )
 
-        self.vBoxLayout.addWidget(CardWrapper(widgets=[FormItem("签到地址")]))
-        self.vBoxLayout.addWidget(CardWrapper(widgets=[FormItem("上传接口")]))
-        self.vBoxLayout.addWidget(CardWrapper(widgets=[FormItem("代理地址")]))
+        self.vBoxLayout.addWidget(self.title)
+        self.formLayout.addWidget(self.signInUrl)
+        self.formLayout.addWidget(self.updateUrl)
+        self.formLayout.addWidget(self.proxyUrl)
+        self.formLayout.addWidget(
+            self.saveButton, alignment=Qt.AlignmentFlag.AlignRight
+        )
+        self.vBoxLayout.addWidget(CardWrapper(widgets=[self.formWidget]))
         self.vBoxLayout.addWidget(
             CardWrapper(
                 title="新增账号",
@@ -140,10 +165,22 @@ class SettingInterface(ScrollArea):
         )
         self.vBoxLayout.addWidget(self.table)
 
+        self.__initConfig()
         self.updateListItem()
 
-        self.view.setObjectName('view')
+        self.view.setObjectName("view")
         self.setObjectName("settingInterface")
+
+    def __initConfig(self):
+        self.config = read_config()
+    
+    def updateConfig(self):
+        self.config['HRM_URL'] = self.signInUrl.lineEdit.text()
+        self.config['BASE_URL'] = self.updateUrl.lineEdit.text()
+        self.config['HTTP_PROXY'] = self.proxyUrl.lineEdit.text()
+        defaultConfig = read_config()
+        defaultConfig.update(self.config)
+        write_config(defaultConfig)
 
     def updateListItem(self):
         config = read_config()
@@ -172,7 +209,7 @@ class SettingInterface(ScrollArea):
             item for item in config["USER_LIST"] if not item["username"] == username
         ]
         write_config(config)
-    
+
     def showSimpleFlyout(self, message):
         Flyout.create(
             icon=InfoBarIcon.WARNING,

@@ -11,7 +11,6 @@ logger.setLevel(logging.INFO)
 # interval: 间隔时间单位的个数，指等待多少个 when 的时间后 Logger 会自动重建新闻继续进行日志记录
 # backupCount: 表示日志文件的保留个数，假如为7，则会保留最近的7个日志文件
 current_path = os.path.abspath(__file__)
-# path = os.path.join(os.path.dirname(current_path), "logs", 'log.log')
 path = os.path.join(os.path.dirname(current_path), "logs")
 if not os.path.isdir(path):
     os.makedirs(path)
