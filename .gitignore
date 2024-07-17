@@ -1,6 +1,6 @@
 # config
 koa-node/public/javascripts/config.js
-pythonScript/privateConfig.json
+privateConfig.json
 sign-in-web/src/components/httpUrl.js
 chromedriver
 

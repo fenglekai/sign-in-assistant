@@ -74,23 +74,27 @@ jobs:
 
       - name: Build the application
         run: |
-          pyinstaller -F -w pythonScript/UI/window.py -n sign-in-assistant --add-data "pythonScript/UI/resource/:./resource/"
+          pyinstaller -D -w pythonScript/UI/window.py -n sign-in-assistant --add-data "pythonScript/UI/resource/:./resource/"
       
+      - name: Output zip 
+        if: ${{ matrix.os == 'windows-latest' }}
+        uses: montudor/action-zip@v1
+        with:
+          args: zip -qq -r dist/sign-in-assistant-win.zip dist/sign-in-assistant/*
+      
+      - name: Output zip 
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        uses: montudor/action-zip@v1
+        with:
+          args: zip -qq -r dist/sign-in-assistant-linux.zip dist/sign-in-assistant/*
+
       - name: Upload artifact for windows
         if: ${{ matrix.os == 'windows-latest' }}
         uses: actions/upload-artifact@v4
         with:
           name: sign-in-assistant-win
           path: |
-            dist/*.exe
-
-      - name: Upload artifact for linux
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: sign-in-assistant-linux
-          path: |
-            dist/*
+            sign-in-assistant.zip
 
   release:
     needs: [create-tag, pyinstaller]
