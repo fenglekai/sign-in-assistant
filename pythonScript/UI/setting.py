@@ -1,13 +1,13 @@
 import typing
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QCursor
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
     QTableWidgetItem,
     QHeaderView,
-    QSizePolicy,
+    QAbstractItemView,
 )
 from qfluentwidgets import (
     LineEdit,
@@ -18,9 +18,12 @@ from qfluentwidgets import (
     SubtitleLabel,
     ScrollArea,
     PrimaryPushButton,
-    StateToolTip,
     Flyout,
     InfoBarIcon,
+    RoundMenu,
+    Action,
+    FluentIcon,
+    MenuAnimationType,
 )
 from style import StyleSheet
 from private_config import read_config, write_config
@@ -86,7 +89,7 @@ class UserTable(CardWidget):
             QHeaderView.ResizeMode.Stretch
         )
         self.table.verticalHeader().hide()
-        self.table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.vBoxLayout.setContentsMargins(24, 24, 24, 24)
 
         # 添加表格数据
@@ -126,7 +129,7 @@ class SettingInterface(ScrollArea):
         self.userForm = FormItem("账号")
         self.passForm = FormItem("密码")
         self.addButton = PrimaryPushButton("添加")
-        self.table = UserTable(header=["账号", "密码"], list=[])
+        self.userTable = UserTable(header=["账号", "密码"], list=[])
         self.stateTooltip = None
         self.config = None
 
@@ -135,11 +138,9 @@ class SettingInterface(ScrollArea):
         self.setWidgetResizable(True)
         self.vBoxLayout.setContentsMargins(36, 20, 36, 36)
         self.vBoxLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        
+
         self.saveButton.setFixedWidth(120)
-        self.saveButton.clicked.connect(
-            lambda: self.updateConfig()
-        )
+        self.saveButton.clicked.connect(lambda: self.updateConfig())
         self.formLayout.setContentsMargins(0, 0, 0, 0)
         self.formLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.userForm.lineEdit.text()
@@ -148,6 +149,7 @@ class SettingInterface(ScrollArea):
                 self.userForm.lineEdit.text(), self.passForm.lineEdit.text()
             )
         )
+        self.userTable.table.cellClicked.connect(self.handleCell)
 
         self.vBoxLayout.addWidget(self.title)
         self.formLayout.addWidget(self.signInUrl)
@@ -163,7 +165,7 @@ class SettingInterface(ScrollArea):
                 widgets=[self.userForm, self.passForm, self.addButton],
             )
         )
-        self.vBoxLayout.addWidget(self.table)
+        self.vBoxLayout.addWidget(self.userTable)
 
         self.__initConfig()
         self.updateListItem()
@@ -173,21 +175,25 @@ class SettingInterface(ScrollArea):
 
     def __initConfig(self):
         self.config = read_config()
-    
+        self.signInUrl.lineEdit.setText(self.config["HRM_URL"])
+        self.updateUrl.lineEdit.setText(self.config["BASE_URL"])
+        self.proxyUrl.lineEdit.setText(self.config["HTTP_PROXY"])
+
     def updateConfig(self):
-        self.config['HRM_URL'] = self.signInUrl.lineEdit.text()
-        self.config['BASE_URL'] = self.updateUrl.lineEdit.text()
-        self.config['HTTP_PROXY'] = self.proxyUrl.lineEdit.text()
+        self.config["HRM_URL"] = self.signInUrl.lineEdit.text()
+        self.config["BASE_URL"] = self.updateUrl.lineEdit.text()
+        self.config["HTTP_PROXY"] = self.proxyUrl.lineEdit.text()
         defaultConfig = read_config()
         defaultConfig.update(self.config)
         write_config(defaultConfig)
 
     def updateListItem(self):
         config = read_config()
+        self.config = config
         userList = []
         for _, user in enumerate(config["USER_LIST"]):
             userList.append([user["username"], "*****"])
-        self.table.setList(userList)
+        self.userTable.setList(userList)
 
     def addListItem(self, username, password):
         config = read_config()
@@ -202,6 +208,8 @@ class SettingInterface(ScrollArea):
         config["USER_LIST"].append({"username": username, "password": password})
         write_config(config)
         self.updateListItem()
+        self.userForm.lineEdit.clear()
+        self.passForm.lineEdit.clear()
 
     def removeListItem(self, username):
         config = read_config()
@@ -218,3 +226,18 @@ class SettingInterface(ScrollArea):
             target=self.addButton,
             parent=self.window(),
         )
+
+    def handleCell(self, row, col):
+        username = self.config["USER_LIST"][row]['username']
+        menu = RoundMenu(parent=self)
+        action = Action(
+            FluentIcon.REMOVE_FROM, f"是否删除当前行: {username}"
+        )
+        def handleTriggered():
+            self.removeListItem(username)
+            self.updateListItem()
+        action.triggered.connect(lambda: handleTriggered())
+        
+
+        menu.addAction(action)
+        menu.exec(QCursor.pos(), aniType=MenuAnimationType.DROP_DOWN)
