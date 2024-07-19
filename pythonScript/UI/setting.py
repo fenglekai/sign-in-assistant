@@ -1,4 +1,5 @@
-import typing
+from sched import scheduler
+import threading
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCursor
 from PyQt6.QtWidgets import (
@@ -8,6 +9,7 @@ from PyQt6.QtWidgets import (
     QTableWidgetItem,
     QHeaderView,
     QAbstractItemView,
+    QSizePolicy,
 )
 from qfluentwidgets import (
     LineEdit,
@@ -24,9 +26,11 @@ from qfluentwidgets import (
     Action,
     FluentIcon,
     MenuAnimationType,
+    SpinBox,
 )
 from style import StyleSheet
 from private_config import read_config, write_config
+import fetch_sign_in
 
 
 class FormItem(QWidget):
@@ -125,6 +129,10 @@ class SettingInterface(ScrollArea):
         self.signInUrl = FormItem("签到地址")
         self.updateUrl = FormItem("上传接口")
         self.proxyUrl = FormItem("代理地址")
+        self.autoWidget = QWidget()
+        self.autoLabel = BodyLabel("自动任务执行时间间隔(分钟):", self.autoWidget)
+        self.autoSpinBox = SpinBox(self.autoWidget)
+        self.autoLayout = QHBoxLayout(self.autoWidget)
         self.saveButton = PrimaryPushButton("保存")
         self.userForm = FormItem("账号")
         self.passForm = FormItem("密码")
@@ -138,14 +146,17 @@ class SettingInterface(ScrollArea):
         self.setWidgetResizable(True)
         self.vBoxLayout.setContentsMargins(36, 20, 36, 36)
         self.vBoxLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
-
+        self.autoSpinBox.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
         self.saveButton.setFixedWidth(120)
         self.saveButton.clicked.connect(lambda: self.updateConfig())
+        self.autoLayout.setSpacing(24)
         self.formLayout.setContentsMargins(0, 0, 0, 0)
         self.formLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.userForm.lineEdit.text()
+        self.autoLayout.setContentsMargins(0, 0, 0, 0)
         self.addButton.clicked.connect(
-            lambda: self.addListItem(
+            lambda: self.addUser(
                 self.userForm.lineEdit.text(), self.passForm.lineEdit.text()
             )
         )
@@ -155,6 +166,9 @@ class SettingInterface(ScrollArea):
         self.formLayout.addWidget(self.signInUrl)
         self.formLayout.addWidget(self.updateUrl)
         self.formLayout.addWidget(self.proxyUrl)
+        self.autoLayout.addWidget(self.autoLabel)
+        self.autoLayout.addWidget(self.autoSpinBox)
+        self.formLayout.addWidget(self.autoWidget)
         self.formLayout.addWidget(
             self.saveButton, alignment=Qt.AlignmentFlag.AlignRight
         )
@@ -168,7 +182,8 @@ class SettingInterface(ScrollArea):
         self.vBoxLayout.addWidget(self.userTable)
 
         self.__initConfig()
-        self.updateListItem()
+        self.__initTask()
+        self.updateUserList()
 
         self.view.setObjectName("view")
         self.setObjectName("settingInterface")
@@ -178,16 +193,18 @@ class SettingInterface(ScrollArea):
         self.signInUrl.lineEdit.setText(self.config["HRM_URL"])
         self.updateUrl.lineEdit.setText(self.config["BASE_URL"])
         self.proxyUrl.lineEdit.setText(self.config["HTTP_PROXY"])
+        self.autoSpinBox.lineEdit().setText(str(self.config["AUTO_INTERVAL"]))
 
     def updateConfig(self):
         self.config["HRM_URL"] = self.signInUrl.lineEdit.text()
         self.config["BASE_URL"] = self.updateUrl.lineEdit.text()
         self.config["HTTP_PROXY"] = self.proxyUrl.lineEdit.text()
+        self.config["AUTO_INTERVAL"] = self.autoSpinBox.lineEdit().text()
         defaultConfig = read_config()
         defaultConfig.update(self.config)
         write_config(defaultConfig)
 
-    def updateListItem(self):
+    def updateUserList(self):
         config = read_config()
         self.config = config
         userList = []
@@ -195,7 +212,7 @@ class SettingInterface(ScrollArea):
             userList.append([user["username"], "*****"])
         self.userTable.setList(userList)
 
-    def addListItem(self, username, password):
+    def addUser(self, username, password):
         config = read_config()
         if not username or not password:
             return self.showSimpleFlyout("请输入账号和密码")
@@ -207,11 +224,11 @@ class SettingInterface(ScrollArea):
 
         config["USER_LIST"].append({"username": username, "password": password})
         write_config(config)
-        self.updateListItem()
+        self.updateUserList()
         self.userForm.lineEdit.clear()
         self.passForm.lineEdit.clear()
 
-    def removeListItem(self, username):
+    def removeUser(self, username):
         config = read_config()
         config["USER_LIST"] = [
             item for item in config["USER_LIST"] if not item["username"] == username
@@ -228,16 +245,25 @@ class SettingInterface(ScrollArea):
         )
 
     def handleCell(self, row, col):
-        username = self.config["USER_LIST"][row]['username']
+        username = self.config["USER_LIST"][row]["username"]
         menu = RoundMenu(parent=self)
-        action = Action(
-            FluentIcon.REMOVE_FROM, f"是否删除当前行: {username}"
-        )
+        action = Action(FluentIcon.REMOVE_FROM, f"是否删除当前行: {username}")
+
         def handleTriggered():
-            self.removeListItem(username)
-            self.updateListItem()
+            self.removeUser(username)
+            self.updateUserList()
+
         action.triggered.connect(lambda: handleTriggered())
-        
 
         menu.addAction(action)
         menu.exec(QCursor.pos(), aniType=MenuAnimationType.DROP_DOWN)
+
+    def __initTask(self):
+        thread = threading.Thread(target=self.autoTask, daemon=True)
+        thread.start()
+
+    def autoTask(self):
+        autoTime = int(self.config["AUTO_INTERVAL"]) * 60
+        print(f"开始执行自动任务, 下次自动任务将在 { int(autoTime/60) } 分钟后执行")
+        fetch_sign_in.fetch_sign_in_list()
+        threading.Timer(autoTime, self.autoTask).start()

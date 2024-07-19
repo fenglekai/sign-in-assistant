@@ -2,5 +2,6 @@
   "HRM_URL": "",
   "BASE_URL": "",
   "HTTP_PROXY": "",
+  "AUTO_INTERVAL": "30",
   "USER_LIST": []
 }

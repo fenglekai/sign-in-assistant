@@ -133,7 +133,7 @@ def run():
 def connection(consoleRedirect=None):
     global console_redirect
     console_redirect = consoleRedirect
-
+    global connectionThread
     connectionThread = threading.Thread(
         target=run, daemon=True
     )

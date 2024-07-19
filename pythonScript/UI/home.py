@@ -115,7 +115,6 @@ class HomeInterface(QWidget):
         self.scrollWidget.setObjectName("scrollWidget")
         StyleSheet.HOME_INTERFACE.apply(self)
 
-        # self.wsConnection()
 
     def __initLayout(self):
         self.vBoxLayout.setContentsMargins(36, 36, 36, 36)

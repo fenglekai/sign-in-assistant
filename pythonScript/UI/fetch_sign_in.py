@@ -165,9 +165,15 @@ def time_format():
     return now_localtime
 
 
+check_count = 0
+
+
 # 检查是否登录
 def check_login():
     try:
+        global check_count
+        if check_count >= 5:
+            raise Exception("检查次数过多")
         browser.implicitly_wait(10)
         title = browser.find_element(By.XPATH, "/html/head/title").get_attribute(
             "textContent"
@@ -177,6 +183,7 @@ def check_login():
             login_frame()
         if title != "個人中心 - 人力資源管理系統":
             time.sleep(1)
+            check_count += 1
             return check_login()
         return True
     except Exception as e:
