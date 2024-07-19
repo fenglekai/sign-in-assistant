@@ -125,7 +125,7 @@ jobs:
 
       - name: Check package
         run: |
-          ls package
+          ls sign-in-assistant-win
 
       - name: Output zip in windows
         uses: montudor/action-zip@v1
