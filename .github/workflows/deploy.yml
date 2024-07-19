@@ -18,6 +18,7 @@ jobs:
         with:
           show-progress: false
           ref: ${{ github.ref_name }}
+          token: ${{ github.token }}
 
       - name: Get version
         id: get_version
@@ -53,6 +54,7 @@ jobs:
         with:
           show-progress: false
           ref: ${{ github.ref_name }}
+          token: ${{ github.token }}
 
       - name: Setup Node.js environment
         uses: actions/setup-python@v5
@@ -116,6 +118,7 @@ jobs:
         with:
           show-progress: false
           ref: ${{ github.ref_name }}
+          token: ${{ github.token }}
 
       - name: Download artifact file for windows
         uses: actions/download-artifact@v4
@@ -123,14 +126,11 @@ jobs:
           name: sign-in-assistant-win
           path: sign-in-assistant-win
 
-      - name: Check package
-        run: |
-          ls sign-in-assistant-win
-
       - name: Output zip in windows
         uses: montudor/action-zip@v1
         with:
-          args: zip -qq -r output/sign-in-assistant-win.zip sign-in-assistant-win/*
+          args: zip -qq -r ${{ github.workspace }}/output/sign-in-assistant-win.zip ${{ github.workspace }}/sign-in-assistant-win
+          working-directory: ${{ github.workspace }}
 
       # - name: Download artifact file for linux
       #   uses: actions/download-artifact@v4

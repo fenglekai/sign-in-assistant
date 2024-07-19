@@ -119,7 +119,7 @@ def create_browser():
 
     chrome_path = os.path.join(static_path, "chrome", f"chrome{suffix}")
     chromedriver_path = os.path.join(static_path, f"chromedriver{suffix}")
-    if not os.path.exists(chrome_path) or os.path.exists(chromedriver_path):
+    if os.path.exists(chrome_path) == False or os.path.exists(chromedriver_path) == False:
         raise Exception("chrome与chromedriver不存在")
 
     options = Options()
