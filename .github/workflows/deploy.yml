@@ -94,7 +94,7 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         uses: actions/upload-artifact@v4
         with:
-          name: sign-in-assistant
+          name: sign-in-assistant-win
           path: |
             sign-in-assistant-win
 
@@ -102,7 +102,7 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: actions/upload-artifact@v4
         with:
-          name: sign-in-assistant
+          name: sign-in-assistant-linux
           path: |
             sign-in-assistant-linux
 
@@ -120,19 +120,23 @@ jobs:
       - name: Download artifact file for windows
         uses: actions/download-artifact@v4
         with:
-          name: sign-in-assistant
-          path: sign-in-assistant-win
+          name: sign-in-assistant-win
+          path: package
+
+      - name: Check package
+        run: |
+          ls package
+
+      - name: Output zip in windows
+        uses: montudor/action-zip@v1
+        with:
+          args: zip -qq -r output/sign-in-assistant-win.zip package/sign-in-assistant-win
 
       # - name: Download artifact file for linux
       #   uses: actions/download-artifact@v4
       #   with:
       #     name: sign-in-assistant
       #     path: sign-in-assistant-linux
-
-      - name: Output zip in windows
-        uses: montudor/action-zip@v1
-        with:
-          args: zip -qq -r output/sign-in-assistant-win.zip sign-in-assistant-win
 
       # - name: Output zip in linux
       #   uses: montudor/action-zip@v1
