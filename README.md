@@ -66,23 +66,8 @@ npm run serve
 ## Python部分
 
 1. 添加`chromedriver`和`chromium`；去[检索历史](https://vikyd.github.io/download-chromium-history-version/#/)是下载对应你chrome浏览器版本的`chromedriver`和`chromium`；
-1. chromium放在`UI/resource/static`，目录名改成`chrome`
-1. chromedriver放在放在`UI/resource/static`
-2. 你可能还需要一个隐私配置，在`pythonScript/UI/resource/static`目录下建立`privateConfig.json`
-
-```
-{
-  "HRM_URL": "", # hrm网址
-  "BASE_URL": "", # 后台接口网址
-  "HTTP_PROXY": "", # 你的http代理
-  "USER_LIST": [
-    {
-      "username": "", # 用户名
-      "password": "" # 密码
-    }
-  ]
-}
-```
+2. chromium放在`UI/resource/static`，目录名改成`chrome`
+3. chromedriver放在放在`UI/resource/static`
 
 
 
