@@ -87,18 +87,43 @@ def get_chrome_proxy_extension(proxy):
 error_count = int(0)
 
 
+def add_error_count():
+    global error_count
+    error_count += 1
+
+
+def get_error_count():
+    if error_count > 5:
+        raise Exception("异常次数过多停止任务")
+
+
+def clear_error_count():
+    error_count = 0
+
+
+# 时间处理
+def time_format():
+    # 当前时间
+    now_localtime = time.strftime("%Y/%m/%d", time.localtime())
+    return now_localtime
+
+
 # 创建测试浏览器
 def create_browser():
     global browser
-    global error_count
 
     # 判断win添加应用后缀
     suffix = ""
     if platform.system().lower() == "windows":
         suffix = ".exe"
 
+    chrome_path = os.path.join(static_path, "chrome", f"chrome{suffix}")
+    chromedriver_path = os.path.join(static_path, f"chromedriver{suffix}")
+    if not os.path.exists(chrome_path) or os.path.exists(chromedriver_path):
+        raise Exception("chrome与chromedriver不存在")
+
     options = Options()
-    options.binary_location = os.path.join(static_path, "chrome", f"chrome{suffix}")
+    options.binary_location = chrome_path
     # 防止检测
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option("useAutomationExtension", False)
@@ -120,19 +145,17 @@ def create_browser():
     # options.add_extension(get_chrome_proxy_extension(proxy=proxy))
 
     service = Service(
-        executable_path=os.path.join(static_path, f"chromedriver{suffix}")
+        executable_path=chromedriver_path
     )
     browser = webdriver.Chrome(options=options, service=service)
     try:
         ws_client.send_msg(f"即将进入：{HRM_URL}")
         browser.get(HRM_URL)
+        clear_error_count()
     except Exception as e:
+        add_error_count()
         ws_client.send_msg("打开网页异常 %s" % e, ws)
-        destroy()
-        error_count += 1
-        if error_count > 5:
-            return ws_client.send_msg("异常次数过多停止任务", ws)
-        create_browser()
+        sign_in_main()
 
 
 # 识别验证码
@@ -158,21 +181,12 @@ def use_orc():
     browser.find_element("name", "CaptchaControl1").send_keys(ocr_res)
 
 
-# 时间处理
-def time_format():
-    # 当前时间
-    now_localtime = time.strftime("%Y/%m/%d", time.localtime())
-    return now_localtime
-
-
-check_count = 0
-
-
 # 检查是否登录
 def check_login():
     try:
-        global check_count
-        if check_count >= 5:
+
+        global error_count
+        if error_count >= 5:
             raise Exception("检查次数过多")
         browser.implicitly_wait(10)
         title = browser.find_element(By.XPATH, "/html/head/title").get_attribute(
@@ -181,14 +195,15 @@ def check_login():
         ws_client.send_msg("进入到: %s" % title, ws)
         if title == "Fii 认证中心":
             login_frame()
+            clear_error_count()
         if title != "個人中心 - 人力資源管理系統":
+            get_error_count()
+            add_error_count()
             time.sleep(1)
-            check_count += 1
             return check_login()
         return True
     except Exception as e:
-        print(e)
-        ws_client.send_msg("未找到对应标识，检查登录失败", ws)
+        ws_client.send_msg(f"未找到对应标识，检查登录失败{e}", ws)
         return False
 
 
@@ -202,8 +217,8 @@ def login_frame():
         login_btn = login_form.find_element(By.TAG_NAME, "button")
         login_btn.click()
     except NoSuchElementException as e:
+        add_error_count()
         ws_client.send_msg("登录流程异常: %s" % e, ws)
-        sign_in_main()
 
 
 # 等待接口数据加载
@@ -328,20 +343,29 @@ def detection_process():
 
 # 主流程
 def sign_in_main(start_date, end_date):
-    create_browser()
-    ws_client.send_msg("登录确认中...", ws)
-    check = check_login()
-    if check == False:
-        return destroy()
+    try:
+        get_error_count()
+        create_browser()
 
-    ws_client.send_msg("查询打卡记录...", ws)
-    data = get_sign_in_data(start_date, end_date)
-    ws_client.send_msg(str(data), ws)
+        ws_client.send_msg("登录确认中...", ws)
+        check = check_login()
+        if check == False:
+            return destroy()
 
-    ws_client.send_msg("发送数据到后台...", ws)
-    insert_sign_in_data(data)
+        ws_client.send_msg("查询打卡记录...", ws)
+        data = get_sign_in_data(start_date, end_date)
+        ws_client.send_msg(str(data), ws)
 
-    destroy()
+        if len(data) == 0:
+            destroy()
+            return ws_client.send_msg("没有需要发送的打卡纪录", ws)
+
+        ws_client.send_msg("发送数据到后台...", ws)
+        insert_sign_in_data(data)
+
+        destroy()
+    except Exception as e:
+        ws_client.send_msg("主流程异常: %s" % e, ws)
 
 
 # 获取签到列表
@@ -355,6 +379,7 @@ def fetch_sign_in_list(user_list=[], client=None, range_date=[]):
     # 当前时间（以时间区间的方式表示）
     now_time = Interval(now_localtime, now_localtime)
     ws_client.send_msg("=========%s script start===============" % now_time, ws)
+    detection_process()
     get_config()
     if len(user_list) == 0:
         user_list = USER_LIST

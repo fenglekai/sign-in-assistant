@@ -1,5 +1,6 @@
 from sched import scheduler
 import threading
+import time
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCursor
 from PyQt6.QtWidgets import (
@@ -182,7 +183,8 @@ class SettingInterface(ScrollArea):
         self.vBoxLayout.addWidget(self.userTable)
 
         self.__initConfig()
-        self.__initTask()
+        thread = threading.Thread(target=self.__initTask, daemon=True)
+        thread.start()
         self.updateUserList()
 
         self.view.setObjectName("view")
@@ -259,11 +261,13 @@ class SettingInterface(ScrollArea):
         menu.exec(QCursor.pos(), aniType=MenuAnimationType.DROP_DOWN)
 
     def __initTask(self):
-        thread = threading.Thread(target=self.autoTask, daemon=True)
-        thread.start()
+        autoInterval = int(self.config["AUTO_INTERVAL"]) * 60
+        print(f"下次自动任务将在 { int(autoInterval/60) } 分钟后执行")
+        time.sleep(autoInterval)
+        self.autoTask()
 
     def autoTask(self):
-        autoTime = int(self.config["AUTO_INTERVAL"]) * 60
-        print(f"开始执行自动任务, 下次自动任务将在 { int(autoTime/60) } 分钟后执行")
+        autoInterval = int(self.config["AUTO_INTERVAL"]) * 60
+        print(f"下次自动任务将在 { int(autoInterval/60) } 分钟后执行")
         fetch_sign_in.fetch_sign_in_list()
-        threading.Timer(autoTime, self.autoTask).start()
+        threading.Timer(autoInterval, self.autoTask).start()
