@@ -91,11 +91,19 @@ jobs:
           mv dist/sign-in-assistant/* sign-in-assistant-linux/
 
       - name: Upload artifact for windows
+        if: ${{ matrix.os == 'windows-latest' }}
         uses: actions/upload-artifact@v4
         with:
           name: sign-in-assistant
           path: |
             sign-in-assistant-win
+
+      - name: Upload artifact for linux
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: sign-in-assistant
+          path: |
             sign-in-assistant-linux
 
   release:
@@ -112,18 +120,24 @@ jobs:
       - name: Download artifact file for windows
         uses: actions/download-artifact@v4
         with:
-          name: sign-in-assistant
-          path: package
+          name: sign-in-assistant-win
+          path: sign-in-assistant-win
+
+      - name: Download artifact file for linux
+        uses: actions/download-artifact@v4
+        with:
+          name: sign-in-assistant-linux
+          path: sign-in-assistant-linux
 
       - name: Output zip in windows
         uses: montudor/action-zip@v1
         with:
-          args: zip -qq -r output/sign-in-assistant-win.zip package/sign-in-assistant-win
+          args: zip -qq -r output/sign-in-assistant-win.zip sign-in-assistant-win
 
       - name: Output zip in linux
         uses: montudor/action-zip@v1
         with:
-          args: zip -qq -r output/sign-in-assistant-linux.zip package/sign-in-assistant-linux
+          args: zip -qq -r output/sign-in-assistant-linux.zip sign-in-assistant-linux
 
       - name: Release to Github
         if: startsWith(github.ref, 'refs/tags/')
