@@ -18,6 +18,12 @@ pipeline {
         }
     }
 
+    stage('Update npm') {
+        steps {
+            sh 'npm i -g npm@latest'
+        }
+    }
+
 
     stage('Build sign-in-web') {
         steps {
