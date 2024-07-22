@@ -19,10 +19,9 @@ def get_config():
     HTTP_PROXY = config["HTTP_PROXY"]
     USER_LIST = config["USER_LIST"]
 
+
 PY_KEY = "[python]"
 TASK_END = "任务结束"
-
-
 
 
 def send_msg(msg, ws=None):
@@ -36,40 +35,22 @@ def on_message(ws, message):
     print(f"{PY_KEY} message: {message}")
     config = private_config.read_config()
     user_list = config["USER_LIST"]
-    if "historyStart" in message:
-        # msg_split = message.split("historyStart", 1)
-        # username = msg_split[1]
-        # user_list = [user for user in USER_LIST if user['username'] == username]
-        # if len(user_list) == 0:
-        #     ws.send("python: The query user list does not exist")
-        #     ws.send("python: Task end")
-        #     return
-        # ws.send("python: Task start")
-        # # 创建一个临时文件对象
-        # temp_stdout = io.StringIO()
-        # # 将标准输出重定向到临时文件对象
-        # sys.stdout = temp_stdout
-        # fetchSignIn.history_sig_in_list(username)
-        # # 恢复标准输出
-        # sys.stdout = sys.__stdout__
-        # # 从临时文件对象中读取内容
-        # output = temp_stdout.getvalue()
-        # print(output)
-        # ws.send("python: " + output)
-        # ws.send("python: %s" % TASK_END)
-        send_msg(f"{PY_KEY} TODO", ws)
-    if "queryStart" in message:
-        msg_split = message.split("queryStart")
-        username = str(msg_split[1]).replace(" ", "")
-        send_msg(f"{PY_KEY} 当前查询用户: {username}", ws)
-        user_list = [user for user in USER_LIST if user["username"] == username]
-        if len(user_list) == 0:
-            send_msg(f"{PY_KEY} 需要查询的用户不存在后台，请联系管理员添加", ws)
-            send_msg(f"{PY_KEY} {TASK_END}", ws)
-            return
-        send_msg(f"{PY_KEY} 任务开始", ws)
-        fetch_sign_in.fetch_sign_in_list(user_list, ws)
+    msg_split = message.split(" ")
+    print(msg_split)
+    username = msg_split[1]
+    date_range = []
+    if len(msg_split) == 3:
+        date = msg_split[2].split("-")
+        date_range = [date[0], date[1]]
+    send_msg(f"{PY_KEY} 当前查询用户: {username}", ws)
+    user_list = [user for user in USER_LIST if user["username"] == username]
+    if len(user_list) == 0:
+        send_msg(f"{PY_KEY} 需要查询的用户不存在后台，请联系管理员添加", ws)
         send_msg(f"{PY_KEY} {TASK_END}", ws)
+        return
+    send_msg(f"{PY_KEY} 任务开始", ws)
+    fetch_sign_in.fetch_sign_in_list(user_list, ws, date_range)
+    send_msg(f"{PY_KEY} {TASK_END}", ws)
 
 
 def on_error(ws, error):
@@ -117,26 +98,18 @@ def run():
             ip = ip_port[0]
             port = ip_port[1]
     ws.run_forever(
-        reconnect=1,
         proxy_type="http",
         http_proxy_host=ip,
         http_proxy_port=port,
         http_proxy_auth=(username, password),
-        ping_timeout= 5,
-        http_proxy_timeout= 5.0,
     )
-
-
-
 
 
 def connection(consoleRedirect=None):
     global console_redirect
     console_redirect = consoleRedirect
     global connectionThread
-    connectionThread = threading.Thread(
-        target=run, daemon=True
-    )
+    connectionThread = threading.Thread(target=run, daemon=True)
     connectionThread.start()
 
 
@@ -150,4 +123,4 @@ def disconnection():
 
 
 if __name__ == "__main__":
-    connection()
+    run()

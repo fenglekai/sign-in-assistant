@@ -194,6 +194,6 @@ class HomeInterface(QWidget):
                     userList.append(user)
                     break
             start = w.startCalendar.text().replace("-", "/")
-            end = w.startCalendar.text().replace("-", "/")
+            end = w.endCalendar.text().replace("-", "/")
             thread = threading.Thread(target=fetch_sign_in.fetch_sign_in_list, daemon=True, args=(userList,None,[start, end],))
             thread.start()
