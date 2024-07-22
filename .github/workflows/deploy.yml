@@ -126,11 +126,15 @@ jobs:
           name: sign-in-assistant-win
           path: sign-in-assistant-win
 
+      - name: Check download files
+        run: |
+          pwd
+          ls
+
       - name: Output zip in windows
         uses: montudor/action-zip@v1
         with:
-          args: zip -qq -r ${{ github.workspace }}/output/sign-in-assistant-win.zip ${{ github.workspace }}/sign-in-assistant-win
-          working-directory: ${{ github.workspace }}
+          args: zip -qq -r ./output/sign-in-assistant-win.zip ./sign-in-assistant-win
 
       # - name: Download artifact file for linux
       #   uses: actions/download-artifact@v4
