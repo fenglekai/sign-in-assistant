@@ -42,11 +42,11 @@ jobs:
     strategy:
       matrix:
         include:
-          # - os: ubuntu-latest
-          #   build: "build:linux"
+          - os: ubuntu-latest
+            path-suffix: "linux"
 
           - os: windows-latest
-            build: "build:win"
+            path-suffix: "win"
 
     steps:
       - name: Checkout code
@@ -78,35 +78,18 @@ jobs:
         run: |
           pyinstaller -D -w pythonScript/UI/window.py -n sign-in-assistant --add-data "pythonScript/UI/resource/:./resource/"
 
-      - name: Copy build in windows
-        if: ${{ matrix.os == 'windows-latest' }}
+      - name: Check build
         run: |
           ls dist/sign-in-assistant
-          mkdir -p sign-in-assistant-win
-          mv dist/sign-in-assistant/* sign-in-assistant-win/
-
-      - name: Copy build in linux
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-          ls dist/sign-in-assistant
-          mkdir -p sign-in-assistant-linux
-          mv dist/sign-in-assistant/* sign-in-assistant-linux/
+          mkdir -p sign-in-assistant-${{ matrix.path-suffix }}
+          mv dist/sign-in-assistant/* sign-in-assistant-${{ matrix.path-suffix }}/
 
       - name: Upload artifact for windows
-        if: ${{ matrix.os == 'windows-latest' }}
         uses: actions/upload-artifact@v4
         with:
-          name: sign-in-assistant-win
+          name: sign-in-assistant-${{ matrix.path-suffix }}
           path: |
-            sign-in-assistant-win
-
-      - name: Upload artifact for linux
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: sign-in-assistant-linux
-          path: |
-            sign-in-assistant-linux
+            sign-in-assistant-${{ matrix.path-suffix }}
 
   release:
     needs: [create-tag, pyinstaller]
@@ -126,6 +109,12 @@ jobs:
           name: sign-in-assistant-win
           path: sign-in-assistant-win
 
+      - name: Download artifact file for linux
+        uses: actions/download-artifact@v4
+        with:
+          name: sign-in-assistant-linux
+          path: sign-in-assistant-linux
+
       - name: Check download files
         run: |
           pwd
@@ -136,12 +125,6 @@ jobs:
         uses: montudor/action-zip@v1
         with:
           args: zip -qq -r ./output/sign-in-assistant-win.zip ./sign-in-assistant-win
-
-      - name: Download artifact file for linux
-        uses: actions/download-artifact@v4
-        with:
-          name: sign-in-assistant-linux
-          path: sign-in-assistant-linux
 
       - name: Output zip in linux
         uses: montudor/action-zip@v1
