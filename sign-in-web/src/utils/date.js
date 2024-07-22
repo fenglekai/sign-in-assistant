@@ -13,4 +13,17 @@ export const formatJsonDate = (date) => {
     }
 };
 
+const zeroPadding = (number) => {
+    return number < 10 ? "0" + number : number
+}
+
+export const formatDate = (dateTime) => {
+    const curDate = new Date(dateTime)
+    const year = curDate.getFullYear()
+    const month = zeroPadding(curDate.getMonth() + 1)
+    const date = zeroPadding(curDate.getDate())
+    
+    return `${year}/${month}/${date}`
+}
+
 export default formatJsonDate

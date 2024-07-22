@@ -232,14 +232,21 @@
           >
             查询今日
           </n-button>
-          <n-button
-            strong
-            secondary
-            :loading="historyBtn"
-            @click="historyClick"
-          >
-            查询历史
-          </n-button>
+          <div class="history-reload">
+            <n-date-picker
+              type="daterange"
+              v-model:value="pickerRange"
+              :is-date-disabled="disableDate"
+            />
+            <n-button
+              strong
+              secondary
+              :loading="historyBtn"
+              @click="historyClick"
+            >
+              查询历史
+            </n-button>
+          </div>
         </div>
       </template>
     </n-modal>
@@ -271,7 +278,7 @@ import {
 } from "naive-ui";
 import DetailTable from "./DetailTable.vue";
 import httpUrl from "./httpUrl";
-import { formatJsonDate } from "../utils/date.js";
+import { formatDate } from "../utils/date.js";
 import { workDay as getWorkDay } from "../utils/workDay.js";
 
 onMounted(() => {
@@ -338,9 +345,9 @@ const fetchSignInData = async (params) => {
   try {
     if (!params.uId) return message.warning("未设置工号");
     const data = await axios.get(`${httpUrl}/signIn`, { params });
-    workDay.value = {...getWorkDay(data.data.data)};
+    workDay.value = { ...getWorkDay(data.data.data) };
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
 };
 
@@ -354,12 +361,12 @@ const setTimer = (socket) => {
 };
 
 const wsMsgContent = ref([]);
-const wsConnection = (prefix = "queryStart") => {
+const wsConnection = (dateRange = "") => {
   let timer = null;
   const { uId, time } = userInformation.value;
   const socket = new WebSocket("wss://foxconn.devkai.site/api");
   socket.onopen = () => {
-    socket.send(`[web] ${prefix} ${uId}`);
+    socket.send(`[web] ${uId}${dateRange}`);
     timer = setTimer(socket);
   };
 
@@ -392,7 +399,7 @@ const reloadClick = async () => {
     reloadBtn.value = true;
     await wsConnection();
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
   reloadBtn.value = false;
 };
@@ -421,14 +428,27 @@ const handleReloadModal = () => {
 };
 
 const historyBtn = ref(false);
+const pickerRange = ref([Date.now(), Date.now()]);
+const disableDate = (ts, type, range) => {
+  if (type === "start" && range !== null) {
+    const before = range[0] - 1000 * 60 * 60 * 24 * 30;
+    const after = range[1] + 1000 * 60 * 60 * 24 * 30;
+    return ts < before || ts > after;
+  }
+  if (type === "end" && range !== null) {
+    const before = range[0] - 1000 * 60 * 60 * 24 * 30;
+    const after = range[1] + 1000 * 60 * 60 * 24 * 30;
+    return ts < before || ts > after;
+  }
+  return false
+};
 const historyClick = async () => {
-  console.log(hasUserID());
   try {
     if (hasUserID()) return;
     historyBtn.value = true;
-    await wsConnection("historyStart");
+    await wsConnection(` ${formatDate(pickerRange.value[0])}-${formatDate(pickerRange.value[1])}`);
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
   historyBtn.value = false;
 };
@@ -456,9 +476,16 @@ watch(
 }
 .reload-btn-wrapper {
   display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.history-reload {
+  display: flex;
   justify-content: flex-end;
 }
-.reload-btn-wrapper > * + * {
+.history-reload > * + * {
   margin-left: 12px;
 }
 </style>
