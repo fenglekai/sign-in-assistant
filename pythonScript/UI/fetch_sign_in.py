@@ -120,7 +120,10 @@ def create_browser():
 
     chrome_path = os.path.join(static_path, "chrome", f"chrome{suffix}")
     chromedriver_path = os.path.join(static_path, f"chromedriver{suffix}")
-    if os.path.exists(chrome_path) == False or os.path.exists(chromedriver_path) == False:
+    if (
+        os.path.exists(chrome_path) == False
+        or os.path.exists(chromedriver_path) == False
+    ):
         raise Exception("chrome与chromedriver不存在")
 
     options = Options()
@@ -145,9 +148,7 @@ def create_browser():
     # proxy = config["HTTP_PROXY"].split("http://")[1]
     # options.add_extension(get_chrome_proxy_extension(proxy=proxy))
 
-    service = Service(
-        executable_path=chromedriver_path
-    )
+    service = Service(executable_path=chromedriver_path)
     browser = webdriver.Chrome(options=options, service=service)
     try:
         ws_client.send_msg(f"即将进入：{HRM_URL}")
@@ -232,8 +233,90 @@ def wait_loading():
         wait_loading()
 
 
-# 获取数据
-def get_sign_in_data(start_date, end_date):
+# 从请求接口获取数据
+def get_sign_in_data_for_request(start_date, end_date, current_page=1):
+    try:
+        browser.implicitly_wait(10)
+        ws_client.send_msg(f",正在读取数据...", ws)
+        ws_client.send_msg(f"当前页数{current_page}, 时间范围{start_date} - {end_date}", ws)
+
+        # cookie获取
+        cookies_list = browser.get_cookies()
+        cookieString = ""
+        for cookie in cookies_list[:-1]:
+            cookieString = cookieString + cookie["name"] + "=" + cookie["value"] + "; "
+
+        cookieString = (
+            cookieString + cookies_list[-1]["name"] + "=" + cookies_list[-1]["value"]
+        )
+        headers = {"cookie": cookieString}
+
+        # 用户信息
+        user_info = browser.find_element(By.CLASS_NAME, "emp-info").find_elements(
+            By.TAG_NAME, "div"
+        )[0]
+        username = user_info.find_element(By.TAG_NAME, "p").text
+        user_id = (
+            user_info.find_element(By.TAG_NAME, "div")
+            .find_element(By.TAG_NAME, "span")
+            .text
+        )
+        page_size = 50
+
+        query = {
+            "RC": str(int(time.time() * 1000)),
+            "EmpNo": user_id,
+            "EmpName": username,
+            "CardInfoTimeSDate": start_date,
+            "CardInfoTimeEDate": end_date,
+            "CurrentPage": str(current_page),
+            "PageSize": str(page_size),
+        }
+        ws_client.send_msg(query)
+
+        url = "https://hrm.myfiinet.com/EmpCardInfo/Search"
+        ret = requests.get(url, headers=headers, params=query, proxies=proxies)
+        if ret.status_code == 200:
+            json_data = json.loads(ret.text)
+            ws_client.send_msg(str(json_data))
+            return format_sign_in_data_for_request(json_data, start_date, end_date, current_page)
+        else:
+            ws_client.send_msg("获取数据异常: %s" % ret, ws)
+
+        return []
+    except Exception as e:
+        ws_client.send_msg("获取数据失败: %s" % e, ws)
+    return []
+
+
+# 格式化打卡数据
+def format_sign_in_data_for_request(json_data, start_date, end_date, current_page):
+    try:
+        sign_in_list = []
+        total = json_data["total"]
+        rows = json_data["rows"]
+        for _, row in enumerate(rows):
+            sign_in_data = {}
+            sign_in_data["uId"] = row["EmpNo"]
+            sign_in_data["name"] = row["EmpName"]
+            sign_in_data["time"] = row["CardInfoTime"]
+            sign_in_data["readCardTime"] = row["CardInfoTime"]
+            sign_in_data["machine"] = row["DevName"]
+            sign_in_data["isEffective"] = "Y"
+            sign_in_list.append(sign_in_data)
+        # 多页查询逻辑
+        if total - (current_page - 1) * len(rows) > len(rows):
+            next_data = get_sign_in_data_for_request(
+                start_date, end_date, current_page=current_page + 1
+            )
+            sign_in_list = sign_in_list + next_data
+    except Exception as e:
+        ws_client.send_msg("格式化打卡数据失败: %s" % e, ws)
+    return sign_in_list
+
+
+# 模拟查询操作获取数据
+def get_sign_in_data_for_window(start_date, end_date):
     try:
         browser.implicitly_wait(10)
         # 菜单选择
@@ -267,14 +350,14 @@ def get_sign_in_data(start_date, end_date):
         time.sleep(1)
         wait_loading()
 
-        return format_sign_in_data()
+        return format_sign_in_data_for_window()
     except Exception as e:
         ws_client.send_msg("获取数据失败: %s" % e, ws)
     return []
 
 
 # 格式化打卡数据
-def format_sign_in_data():
+def format_sign_in_data_for_window():
     ws_client.send_msg("正在读取数据...", ws)
     sign_in_list = []
 
@@ -353,7 +436,7 @@ def sign_in_main(start_date, end_date):
             return destroy()
 
         ws_client.send_msg("查询打卡记录...", ws)
-        data = get_sign_in_data(start_date, end_date)
+        data = get_sign_in_data_for_request(start_date, end_date)
         ws_client.send_msg(str(data), ws)
 
         if len(data) == 0:
@@ -399,5 +482,5 @@ def fetch_sign_in_list(user_list=[], client=None, range_date=[]):
 
 
 if __name__ == "__main__":
-    fetch_sign_in_list(range_date=["2024/07/16", "2024/07/16"])
+    fetch_sign_in_list(range_date=["2024/07/01", "2024/07/19"])
     # detection_process()
