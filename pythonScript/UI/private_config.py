@@ -5,7 +5,6 @@ import shutil
 
 current_path = os.path.abspath(__file__)
 static_path = os.path.join(os.path.dirname(current_path), "resource", "static")
-current_path = os.path.abspath(__file__)
 default_config_path = os.path.join(static_path, "defaultConfig.json")
 config_path = os.path.join(static_path, "privateConfig.json")
 

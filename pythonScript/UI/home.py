@@ -99,13 +99,11 @@ class HomeInterface(QWidget):
 
         self.commandBar = CommandBar(self)
 
-        self.action = Action(
+        self.playAction = Action(
             FluentIcon.PLAY,
             "连接启动",
             checkable=True,
-            toggled=lambda: self.handleActionCheck(),
         )
-        self.action.setChecked(True)
 
         self.__initLayout()
         self.__initWidget()
@@ -114,7 +112,6 @@ class HomeInterface(QWidget):
         self.scrollArea.setObjectName("scrollArea")
         self.scrollWidget.setObjectName("scrollWidget")
         StyleSheet.HOME_INTERFACE.apply(self)
-
 
     def __initLayout(self):
         self.vBoxLayout.setContentsMargins(36, 36, 36, 36)
@@ -138,9 +135,11 @@ class HomeInterface(QWidget):
             Action(FluentIcon.SEND, "执行任务", triggered=lambda: self.handleSendBtn())
         )
         self.commandBar.addSeparator()
+        self.playAction.toggled.connect(self.handleActionCheck)
+        self.playAction.setChecked(True)
         self.commandBar.addActions(
             [
-                self.action,
+                self.playAction,
             ]
         )
 
@@ -195,5 +194,13 @@ class HomeInterface(QWidget):
                     break
             start = w.startCalendar.text().replace("-", "/")
             end = w.endCalendar.text().replace("-", "/")
-            thread = threading.Thread(target=fetch_sign_in.fetch_sign_in_list, daemon=True, args=(userList,None,[start, end],))
+            thread = threading.Thread(
+                target=fetch_sign_in.fetch_sign_in_list,
+                daemon=True,
+                args=(
+                    userList,
+                    None,
+                    [start, end],
+                ),
+            )
             thread.start()
