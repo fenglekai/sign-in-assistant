@@ -110,6 +110,7 @@ def time_format():
 
 # 创建测试浏览器
 def create_browser():
+    get_error_count()
     global browser
 
     # 判断win添加应用后缀
@@ -344,7 +345,6 @@ def detection_process():
 # 主流程
 def sign_in_main(start_date, end_date):
     try:
-        get_error_count()
         create_browser()
 
         ws_client.send_msg("登录确认中...", ws)
@@ -393,6 +393,7 @@ def fetch_sign_in_list(user_list=[], client=None, range_date=[]):
     for user in user_list:
         GLOBAL_USERNAME = user["username"]
         GLOBAL_PASSWORD = user["password"]
+        clear_error_count()
         sign_in_main(range_date[0], range_date[1])
     ws_client.send_msg("=========script end===============", ws)
 
