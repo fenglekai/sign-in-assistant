@@ -18,10 +18,9 @@ pipeline {
         }
     }
 
-    stage('Update npm') {
+    stage('Set npm configure') {
         steps {
             sh 'npm config set registry https://registry.npmmirror.com'
-            sh 'npm i -g npm@latest'
         }
     }
 
