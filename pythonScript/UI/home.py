@@ -166,7 +166,7 @@ class HomeInterface(QWidget):
         self.scrollFlag = True
 
     def handleActionCheck(self):
-        if self.action.isChecked():
+        if self.playAction.isChecked():
             self.wsConnection()
         else:
             self.wsDisconnection()
