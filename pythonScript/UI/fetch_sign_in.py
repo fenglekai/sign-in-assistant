@@ -93,11 +93,13 @@ def add_error_count():
 
 
 def get_error_count():
+    global error_count
     if error_count > 5:
         raise Exception("异常次数过多停止任务")
 
 
 def clear_error_count():
+    global error_count
     error_count = 0
 
 
@@ -186,10 +188,6 @@ def use_orc():
 # 检查是否登录
 def check_login():
     try:
-
-        global error_count
-        if error_count >= 5:
-            raise Exception("检查次数过多")
         browser.implicitly_wait(10)
         title = browser.find_element(By.XPATH, "/html/head/title").get_attribute(
             "textContent"
