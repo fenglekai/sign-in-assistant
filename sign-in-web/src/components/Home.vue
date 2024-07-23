@@ -345,6 +345,7 @@ const fetchSignInData = async (params) => {
   try {
     if (!params.uId) return message.warning("未设置工号");
     const data = await axios.get(`${httpUrl}/signIn`, { params });
+    console.log(getWorkDay(data.data.data));
     workDay.value = { ...getWorkDay(data.data.data) };
   } catch (error) {
     console.error(error);

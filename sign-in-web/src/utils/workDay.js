@@ -19,8 +19,6 @@ export function workDay(data = []) {
     }
     // 数据最大时间优先输出
     for (const iterator of data) {
-        if (workSignIn.offWork) continue;
-        if (workSignIn.work) break;
         const temp = {
           ...iterator,
           time: formatJsonDate(iterator.time),
@@ -28,10 +26,13 @@ export function workDay(data = []) {
         };
         const signInTime = new Date(temp.time)
         const offWorkTime = setOffTime(temp.time)
-        if (signInTime < offWorkTime) {
+        if (signInTime < offWorkTime && !workSignIn.work) {
           workSignIn.work = temp
-        } else {
+          continue;
+        } 
+        if (signInTime > offWorkTime && !workSignIn.offWork) {
           workSignIn.offWork = temp
+          continue;
         }
       }
     return workSignIn

@@ -131,7 +131,8 @@ const fetchSignInData = async (params) => {
     });
   } catch (error) {
     console.log(error);
-    return loadingBar.error();
+    loadingBar.error();
+    throw error
   }
   loadingBar.finish();
 };

@@ -2,21 +2,41 @@
     <div class="calendar">
         <div class="calendar-header">
             <div class="calendar-header__left">
-                <n-icon size="20" class="hand" @click="nextMonth(-1)">
-                    <KeyboardArrowLeftOutlined />
-                </n-icon>
-                <n-icon size="20" class="hand" @click="nextYear(-1)">
-                    <KeyboardDoubleArrowLeftOutlined />
-                </n-icon>
+                <n-tooltip trigger="hover">
+                    <template #trigger>
+                        <n-icon size="20" class="hand" @click="nextMonth(-1)">
+                            <KeyboardArrowLeftOutlined />
+                        </n-icon>
+                    </template>
+                    上一月份
+                </n-tooltip>
+                <n-tooltip trigger="hover">
+                    <template #trigger>
+                        <n-icon size="20" class="hand" @click="nextYear(-1)">
+                            <KeyboardDoubleArrowLeftOutlined />
+                        </n-icon>
+                    </template>
+                    上一年份
+                </n-tooltip>
             </div>
             <div class="calendar-header__center">{{ showDate.year }} 年 {{ showDate.month + 1 }} 月</div>
             <div class="calendar-header__right">
-            <n-icon size="20" class="hand" @click="nextYear(1)">
-                <KeyboardDoubleArrowRightOutlined />
-            </n-icon>
-            <n-icon size="20" class="hand" @click="nextMonth(1)">
-                <KeyboardArrowRightOutlined />
-            </n-icon>
+                <n-tooltip trigger="hover">
+                    <template #trigger>
+                        <n-icon size="20" class="hand" @click="nextYear(1)">
+                            <KeyboardDoubleArrowRightOutlined />
+                        </n-icon>
+                    </template>
+                    下一年份
+                </n-tooltip>
+                <n-tooltip trigger="hover">
+                    <template #trigger>
+                        <n-icon size="20" class="hand" @click="nextMonth(1)">
+                            <KeyboardArrowRightOutlined />
+                        </n-icon>
+                    </template>
+                    下一月份
+                </n-tooltip>
             </div>
         </div>
         <div class="calendar-main">
