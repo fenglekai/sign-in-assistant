@@ -7,7 +7,7 @@ pipeline {
   agent {
     docker {
       image 'node:16'
-      args '-v /code/sign-in-assistant":/code/sign-in-assistant":rw -v /web-code/sign-in-web:/web-code/sign-in-web:rw'
+      args '-v /code/sign-in-assistant":/code/sign-in-assistant":rw -v /web-code/sign-in-web:/web-code/sign-in-web:rw --network=host'
     }
   }
   
