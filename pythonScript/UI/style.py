@@ -4,6 +4,7 @@ from qfluentwidgets import (
     StyleSheetBase,
     Theme,
 )
+from use_path import local_path
 
 class StyleSheet(StyleSheetBase, Enum):
     """Style sheet"""
@@ -13,6 +14,4 @@ class StyleSheet(StyleSheetBase, Enum):
 
 
     def path(self, theme=Theme.AUTO):
-        current_path = os.path.abspath(__file__)
-        local_path = os.path.dirname(current_path)
         return f"{local_path}/resource/qss/{self.value}.qss"

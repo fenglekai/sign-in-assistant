@@ -1,15 +1,10 @@
 # -*- coding: UTF-8 -*-
-import os
 import threading
 import websocket
 import time
 import fetch_sign_in
-import json
 import private_config
 from logger import logger
-
-current_path = os.path.abspath(__file__)
-path = os.path.join(os.path.dirname(current_path), "resource")
 
 
 def get_config():

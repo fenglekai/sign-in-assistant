@@ -1,12 +1,7 @@
 import json
 import os
 import shutil
-
-
-current_path = os.path.abspath(__file__)
-static_path = os.path.join(os.path.dirname(current_path), "resource", "static")
-default_config_path = os.path.join(static_path, "defaultConfig.json")
-config_path = os.path.join(static_path, "privateConfig.json")
+from use_path import config_path, default_config_path
 
 
 def read_config():

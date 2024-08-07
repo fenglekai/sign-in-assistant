@@ -1,4 +1,6 @@
 {
+  "CHROME": "",
+  "CHROME_DRIVER": "",
   "HRM_URL": "",
   "BASE_URL": "",
   "HTTP_PROXY": "",
