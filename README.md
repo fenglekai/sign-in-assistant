@@ -33,8 +33,8 @@
 ### python
 
 ```
-pip install -r pythonScprit/requirements.txt
-python ./UI/window.py
+pip install -r pythonScript/requirements.txt
+python pythonScript/UI/window.py
 ```
 
 ### mariadb
@@ -65,7 +65,7 @@ npm run serve
 
 ## Python部分
 
-1. 添加`chromedriver`和`chromium`；去[检索历史](https://vikyd.github.io/download-chromium-history-version/#/)是下载对应你chrome浏览器版本的`chromedriver`和`chromium`；
+1. 添加`chromedriver`和`chromium`；去[检索历史](https://vikyd.github.io/download-chromium-history-version/#/)是下载对应你chrome浏览器版本的`chromedriver`和`chromium`，需要ChromeDriver-117以上；
 2. chromium放在`UI/resource/static`，目录名改成`chrome`
 3. chromedriver放在放在`UI/resource/static`
 
@@ -80,7 +80,7 @@ npm run serve
 ### 构建应用
 
 ```shell
-pyinstaller -D -w ./UI/window.py -n sign-in-assistant --add-data "./UI/resource/:./resource/"
+pyinstaller -D -w pythonScript/UI/window.py -n sign-in-assistant --add-data "pythonScript/UI/resource/:./resource/" --icon=pythonScript/UI/resource/static/favicon.ico
 ```
 
 > WARNING: Library not found: could not resolve 'libglib-2.0.so.0', dependency of 'XXX'

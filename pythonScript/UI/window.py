@@ -1,18 +1,27 @@
 # coding:utf-8
 import sys
 
-from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtCore import Qt, QUrl, QEventLoop, QTimer, QSize
 from PyQt6.QtGui import QIcon, QDesktopServices, QAction
-from PyQt6.QtWidgets import QApplication, QFrame, QHBoxLayout, QMenu, QSystemTrayIcon
+from PyQt6.QtWidgets import (
+    QApplication,
+    QFrame,
+    QHBoxLayout,
+    QMenu,
+    QSystemTrayIcon,
+)
+import psutil
 from qfluentwidgets import (
     NavigationItemPosition,
     MSFluentWindow,
     SubtitleLabel,
     setFont,
 )
-from qfluentwidgets import FluentIcon as FIF
+from qfluentwidgets import FluentIcon as FIF, SplashScreen, Dialog
 from home import HomeInterface
 from setting import SettingInterface
+from check_window import check_window, remove_file
+from use_path import local_path
 
 
 class Widget(QFrame):
@@ -32,6 +41,16 @@ class Window(MSFluentWindow):
 
     def __init__(self, app):
         super().__init__()
+        # self.icon = QIcon(":/qfluentwidgets/images/logo.png")
+        self.icon = QIcon(f"{local_path}/resource/static/logo.jpeg")
+
+        self.splashScreen = SplashScreen(self.icon, self)
+        self.splashScreen.setIconSize(QSize(102, 102))
+
+        self.initWindow()
+        self.show()
+        self.createSubInterface()
+        self.splashScreen.finish()
 
         # create sub interface
         self.homeInterface = HomeInterface(self)
@@ -40,11 +59,11 @@ class Window(MSFluentWindow):
 
         self.trayIcon = QSystemTrayIcon(self)
         self.trayMenu = QMenu(self)
+        self.showAction = QAction("打开主页", self)
         self.quitAction = QAction("退出", self)
 
         self.initNavigation()
-        self.initWindow()
-        self.initTrayMenu()
+        self.initTrayMenu(app)
 
     def initNavigation(self):
 
@@ -69,17 +88,20 @@ class Window(MSFluentWindow):
 
     def initWindow(self):
         self.resize(900, 700)
-        self.setWindowIcon(QIcon(":/qfluentwidgets/images/logo.png"))
+        self.setWindowIcon(self.icon)
         self.setWindowTitle("签到小助手")
 
         desktop = QApplication.screens()[0].availableGeometry()
         w, h = desktop.width(), desktop.height()
         self.move(w // 2 - self.width() // 2, h // 2 - self.height() // 2)
 
-    def initTrayMenu(self):
-        
-        self.trayIcon.setIcon(QIcon(":/qfluentwidgets/images/logo.png"))
-        self.quitAction.triggered.connect(app.quit)
+    def initTrayMenu(self, app):
+
+        self.trayIcon.setIcon(self.icon)
+        self.showAction.triggered.connect(self.showWindow)
+        self.quitAction.triggered.connect(lambda: self.handleClose(app))
+        self.trayMenu.addAction(self.showAction)
+        self.trayMenu.addSeparator()
         self.trayMenu.addAction(self.quitAction)
         self.trayIcon.setContextMenu(self.trayMenu)
         self.trayIcon.activated.connect(self.handleTrayClick)
@@ -93,19 +115,62 @@ class Window(MSFluentWindow):
         event.ignore()
         self.hide()
 
+    def showWindow(self):
+        if self.isHidden():
+            self.showNormal()
+            self.raise_()
+
     def handleTrayClick(self, reason):
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
-            if self.isHidden():
-                self.showNormal()
-                self.raise_()
+            self.showWindow()
+
+    def handleClose(self, app):
+        remove_file()
+        app.quit()
+
+    def createSubInterface(self):
+        loop = QEventLoop(self)
+        check_window(self)
+        QTimer.singleShot(1000, loop.quit)
+        loop.exec()
+
+
+class SingletonApp(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+        self.instance = None
+
+    def createInstance(self):
+        if self.instance is not None:
+            self.instance.show()
+            self.instance.raise_()
+            return
+        self.instance = Window(self)
+
+
+def setupWindow():
+    # create application
+    app = SingletonApp(sys.argv)
+
+    app.createInstance()
+
+    def handleGlobalException(excType, excValue, excTraceback):
+        if excType == psutil.ZombieProcess or excType == psutil.NoSuchProcess:
+            return
+        w = Dialog(
+            "错误",
+            f"应用运行出错:\nErrorType: {excType}\n{excValue}\n{excTraceback}",
+            app.instance,
+        )
+        w.yesButton.setText("确认")
+        w.cancelButton.hide()
+        if w.exec():
+            remove_file()
+            sys.exit(1)
+
+    sys.excepthook = handleGlobalException
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":
-    # create application
-    app = QApplication(sys.argv)
-
-    # create main window
-    w = Window(app)
-    w.show()
-
-    app.exec()
+    setupWindow()

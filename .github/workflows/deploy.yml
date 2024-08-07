@@ -76,7 +76,7 @@ jobs:
 
       - name: Build the application
         run: |
-          pyinstaller -D -w pythonScript/UI/window.py -n sign-in-assistant --add-data "pythonScript/UI/resource/:./resource/"
+          pyinstaller -D -w pythonScript/UI/window.py -n sign-in-assistant --add-data "pythonScript/UI/resource/:./resource/" --icon=pythonScript/UI/resource/static/favicon.ico
 
       - name: Check build
         run: |

@@ -17,6 +17,7 @@ logs
 __pycache__
 chrome
 profile
+config
 
 # IDEA VSCode config
 .vscode
