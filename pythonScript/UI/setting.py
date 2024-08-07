@@ -1,8 +1,7 @@
-from sched import scheduler
 import threading
 import time
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QCursor
+from PyQt6.QtGui import QCursor, QResizeEvent
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -11,11 +10,11 @@ from PyQt6.QtWidgets import (
     QHeaderView,
     QAbstractItemView,
     QSizePolicy,
+    QFileDialog,
 )
 from qfluentwidgets import (
     LineEdit,
     BodyLabel,
-    CardWidget,
     TableWidget,
     TitleLabel,
     SubtitleLabel,
@@ -26,12 +25,18 @@ from qfluentwidgets import (
     RoundMenu,
     Action,
     FluentIcon,
+    FluentIcon as FIF,
     MenuAnimationType,
     SpinBox,
+    PushSettingCard,
+    QConfig,
+    ConfigItem,
+    FolderValidator,
 )
 from style import StyleSheet
 from private_config import read_config, write_config
 import fetch_sign_in
+from use_path import static_path
 
 
 class FormItem(QWidget):
@@ -51,12 +56,11 @@ class FormItem(QWidget):
         self.setObjectName("formItem")
 
 
-class CardWrapper(CardWidget):
+class CardWrapper(QWidget):
     """Card wrapper"""
 
     def __init__(self, title=None, widgets=[], parent=None):
         super().__init__(parent=parent)
-        self.setClickEnabled(False)
         self.view = QWidget(self)
         self.vBoxLayout = QVBoxLayout(self)
         self.hBoxLayout = QHBoxLayout(self.view)
@@ -67,10 +71,11 @@ class CardWrapper(CardWidget):
             self.hBoxLayout.addWidget(widget, alignment=Qt.AlignmentFlag.AlignVCenter)
             self.hBoxLayout.setSpacing(24)
 
-        self.vBoxLayout.setContentsMargins(24, 24, 24, 24)
+        self.vBoxLayout.setContentsMargins(0, 0, 0, 0)
+        self.hBoxLayout.setContentsMargins(24, 24, 24, 24)
         self.vBoxLayout.addWidget(self.view)
 
-        self.setObjectName("cardWrapper")
+        self.view.setObjectName("cardView")
 
     def __initTitle(self, title):
         if title != None:
@@ -78,13 +83,15 @@ class CardWrapper(CardWidget):
             self.vBoxLayout.addWidget(title)
 
 
-class UserTable(CardWidget):
+class UserTable(QWidget):
     """User table"""
 
     def __init__(self, header=[], list=[], parent=None):
         super().__init__(parent=parent)
-        self.vBoxLayout = QHBoxLayout(self)
-        self.table = TableWidget(self)
+        self.view = QWidget(self)
+        self.viewBoxLayout = QHBoxLayout(self)
+        self.hBoxLayout = QHBoxLayout(self.view)
+        self.table = TableWidget(self.view)
         self.table.setBorderVisible(True)
         self.table.setBorderRadius(8)
         self.table.setWordWrap(False)
@@ -95,7 +102,8 @@ class UserTable(CardWidget):
         )
         self.table.verticalHeader().hide()
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.vBoxLayout.setContentsMargins(24, 24, 24, 24)
+        self.viewBoxLayout.setContentsMargins(0, 0, 0, 0)
+        self.hBoxLayout.setContentsMargins(24, 24, 24, 24)
 
         # 添加表格数据
         self.setList(list)
@@ -104,8 +112,9 @@ class UserTable(CardWidget):
         self.table.setHorizontalHeaderLabels(header)
         self.table.setMinimumHeight(300)
 
-        self.vBoxLayout.addWidget(self.table)
-        self.setObjectName("userTable")
+        self.hBoxLayout.addWidget(self.table)
+        self.viewBoxLayout.addWidget(self.view)
+        self.view.setObjectName("cardView")
 
     def setList(self, list):
         self.table.clearContents()
@@ -115,16 +124,69 @@ class UserTable(CardWidget):
                 self.table.setItem(i, j, QTableWidgetItem(list[j]))
 
 
+class Config(QConfig):
+    """Config of application"""
+
+    def __init__(self):
+        super().__init__()
+
+        self.chromeFolder = ConfigItem(
+            "Folders", "CHROME", f"{static_path}/chrome", FolderValidator()
+        )
+        self.chromeDriverFolder = ConfigItem(
+            "Folders", "CHROME_DRIVER", f"{static_path}", FolderValidator()
+        )
+
+        self.config = None
+
+        self.__initConfig()
+
+    def __initConfig(self):
+        self.config = read_config()
+        if self.config["CHROME"] != "":
+            self.set(self.chromeFolder, self.config["CHROME"])
+        else:
+            self.config["CHROME"] = self.get(self.chromeFolder)
+
+        if self.config["CHROME_DRIVER"] != "":
+            self.set(self.chromeDriverFolder, self.config["CHROME_DRIVER"])
+        else:
+            self.config["CHROME_DRIVER"] = self.get(self.chromeDriverFolder)
+
+        write_config(self.config)
+
+    def updateConfig(self):
+        defaultConfig = read_config()
+        defaultConfig.update(cfg.config)
+        write_config(defaultConfig)
+
+
+cfg = Config()
+
+
 class SettingInterface(ScrollArea):
     """Setting interface"""
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        StyleSheet.SETTING_INTERFACE.apply(self)
 
         self.title = TitleLabel("设置", self)
         self.view = QWidget(self)
         self.vBoxLayout = QVBoxLayout(self.view)
+        self.chromeFolderCard = PushSettingCard(
+            "选择目录",
+            FIF.FOLDER_ADD,
+            "Chrome位置",
+            cfg.get(cfg.chromeFolder),
+            self.view,
+        )
+        self.chromeDriverFolderCard = PushSettingCard(
+            "选择目录",
+            FIF.ROBOT,
+            "ChromeDriver位置",
+            cfg.get(cfg.chromeDriverFolder),
+            self.view,
+        )
         self.formWidget = QWidget()
         self.formLayout = QVBoxLayout(self.formWidget)
         self.signInUrl = FormItem("签到地址")
@@ -140,7 +202,6 @@ class SettingInterface(ScrollArea):
         self.addButton = PrimaryPushButton("添加")
         self.userTable = UserTable(header=["账号", "密码"], list=[])
         self.stateTooltip = None
-        self.config = None
 
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setWidget(self.view)
@@ -149,6 +210,17 @@ class SettingInterface(ScrollArea):
         self.vBoxLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.autoSpinBox.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        self.autoSpinBox.setMaximum(24 * 60)
+        self.chromeFolderCard.clicked.connect(
+            lambda: self.handleFolderCardClicked(
+                cfg.chromeFolder, self.chromeFolderCard
+            )
+        )
+        self.chromeDriverFolderCard.clicked.connect(
+            lambda: self.handleFolderCardClicked(
+                cfg.chromeDriverFolder, self.chromeDriverFolderCard
+            )
         )
         self.saveButton.setFixedWidth(120)
         self.saveButton.clicked.connect(lambda: self.updateConfig())
@@ -164,6 +236,8 @@ class SettingInterface(ScrollArea):
         self.userTable.table.cellClicked.connect(self.handleCell)
 
         self.vBoxLayout.addWidget(self.title)
+        self.vBoxLayout.addWidget(self.chromeFolderCard)
+        self.vBoxLayout.addWidget(self.chromeDriverFolderCard)
         self.formLayout.addWidget(self.signInUrl)
         self.formLayout.addWidget(self.updateUrl)
         self.formLayout.addWidget(self.proxyUrl)
@@ -183,59 +257,82 @@ class SettingInterface(ScrollArea):
         self.vBoxLayout.addWidget(self.userTable)
 
         self.__initConfig()
+        self.updateUserList()
         thread = threading.Thread(target=self.__initTask, daemon=True)
         thread.start()
-        self.updateUserList()
 
         self.view.setObjectName("view")
         self.setObjectName("settingInterface")
+        StyleSheet.SETTING_INTERFACE.apply(self)
+
+    def resizeEvent(self, event: QResizeEvent):
+        self.chromeFolderCard.setFixedWidth(
+            event.size().width()
+            - self.vBoxLayout.contentsMargins().left()
+            - self.vBoxLayout.contentsMargins().right()
+        )
+        self.chromeDriverFolderCard.setFixedWidth(
+            event.size().width()
+            - self.vBoxLayout.contentsMargins().left()
+            - self.vBoxLayout.contentsMargins().right()
+        )
 
     def __initConfig(self):
-        self.config = read_config()
-        self.signInUrl.lineEdit.setText(self.config["HRM_URL"])
-        self.updateUrl.lineEdit.setText(self.config["BASE_URL"])
-        self.proxyUrl.lineEdit.setText(self.config["HTTP_PROXY"])
-        self.autoSpinBox.lineEdit().setText(str(self.config["AUTO_INTERVAL"]))
+        self.signInUrl.lineEdit.setText(cfg.config["HRM_URL"])
+        self.updateUrl.lineEdit.setText(cfg.config["BASE_URL"])
+        self.proxyUrl.lineEdit.setText(cfg.config["HTTP_PROXY"])
+        self.autoSpinBox.lineEdit().setText(str(cfg.config["AUTO_INTERVAL"]))
 
     def updateConfig(self):
-        self.config["HRM_URL"] = self.signInUrl.lineEdit.text()
-        self.config["BASE_URL"] = self.updateUrl.lineEdit.text()
-        self.config["HTTP_PROXY"] = self.proxyUrl.lineEdit.text()
-        self.config["AUTO_INTERVAL"] = self.autoSpinBox.lineEdit().text()
-        defaultConfig = read_config()
-        defaultConfig.update(self.config)
-        write_config(defaultConfig)
+        cfg.config["HRM_URL"] = self.signInUrl.lineEdit.text()
+        cfg.config["BASE_URL"] = self.updateUrl.lineEdit.text()
+        cfg.config["HTTP_PROXY"] = self.proxyUrl.lineEdit.text()
+        cfg.config["AUTO_INTERVAL"] = self.autoSpinBox.lineEdit().text()
+        cfg.updateConfig()
+
+    def handleFolderCardClicked(self, currentFolder, folderCard):
+        """download folder card clicked slot"""
+        folder = QFileDialog.getExistingDirectory(self, self.tr("Choose folder"), cfg.config[currentFolder.name])
+        if not folder or cfg.get(currentFolder) == folder:
+            return
+
+        cfg.config[currentFolder.name] = folder
+        cfg.set(currentFolder, folder)
+        folderCard.setContent(folder)
+        cfg.updateConfig()
 
     def updateUserList(self):
-        config = read_config()
-        self.config = config
         userList = []
-        for _, user in enumerate(config["USER_LIST"]):
+        for _, user in enumerate(cfg.config["USER_LIST"]):
             userList.append([user["username"], "*****"])
         self.userTable.setList(userList)
 
     def addUser(self, username, password):
-        config = read_config()
         if not username or not password:
             return self.showSimpleFlyout("请输入账号和密码")
         if (
-            len([item for item in config["USER_LIST"] if item["username"] == username])
+            len(
+                [
+                    item
+                    for item in cfg.config["USER_LIST"]
+                    if item["username"] == username
+                ]
+            )
             > 0
         ):
             return self.showSimpleFlyout("该账号已存在")
 
-        config["USER_LIST"].append({"username": username, "password": password})
-        write_config(config)
+        cfg.config["USER_LIST"].append({"username": username, "password": password})
         self.updateUserList()
         self.userForm.lineEdit.clear()
         self.passForm.lineEdit.clear()
+        cfg.updateConfig()
 
     def removeUser(self, username):
-        config = read_config()
-        config["USER_LIST"] = [
-            item for item in config["USER_LIST"] if not item["username"] == username
+        cfg.config["USER_LIST"] = [
+            item for item in cfg.config["USER_LIST"] if not item["username"] == username
         ]
-        write_config(config)
+        cfg.updateConfig()
 
     def showSimpleFlyout(self, message):
         Flyout.create(
@@ -247,7 +344,7 @@ class SettingInterface(ScrollArea):
         )
 
     def handleCell(self, row, col):
-        username = self.config["USER_LIST"][row]["username"]
+        username = cfg.config["USER_LIST"][row]["username"]
         menu = RoundMenu(parent=self)
         action = Action(FluentIcon.REMOVE_FROM, f"是否删除当前行: {username}")
 
@@ -261,13 +358,13 @@ class SettingInterface(ScrollArea):
         menu.exec(QCursor.pos(), aniType=MenuAnimationType.DROP_DOWN)
 
     def __initTask(self):
-        autoInterval = int(self.config["AUTO_INTERVAL"]) * 60
+        autoInterval = int(cfg.config["AUTO_INTERVAL"]) * 60
         print(f"下次自动任务将在 { int(autoInterval/60) } 分钟后执行")
         time.sleep(autoInterval)
         self.autoTask()
 
     def autoTask(self):
-        autoInterval = int(self.config["AUTO_INTERVAL"]) * 60
+        autoInterval = int(cfg.config["AUTO_INTERVAL"]) * 60
         print(f"下次自动任务将在 { int(autoInterval/60) } 分钟后执行")
         fetch_sign_in.fetch_sign_in_list()
         threading.Timer(autoInterval, self.autoTask).start()
