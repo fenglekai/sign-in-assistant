@@ -16,7 +16,12 @@ from qfluentwidgets import (
     CalendarPicker,
     BodyLabel,
 )
-import fetch_sign_in
+from fetch_sign_in import (
+    fetch_sign_in_list,
+    detection_process,
+    create_browser,
+    get_config,
+)
 from ws_client import connection, disconnection
 from private_config import read_config
 from style import StyleSheet
@@ -104,6 +109,14 @@ class HomeInterface(QWidget):
             "连接启动",
             checkable=True,
         )
+        self.browserAction = Action(
+            FluentIcon.CAFE,
+            "浏览器调用测试",
+        )
+        self.clearBrowserAction = Action(
+            FluentIcon.BROOM,
+            "销毁浏览器进程",
+        )
 
         self.__initLayout()
         self.__initWidget()
@@ -137,9 +150,13 @@ class HomeInterface(QWidget):
         self.commandBar.addSeparator()
         self.playAction.toggled.connect(self.handleActionCheck)
         self.playAction.setChecked(True)
+        self.browserAction.triggered.connect(lambda: (get_config(), create_browser(headless=False)))
+        self.clearBrowserAction.triggered.connect(lambda: detection_process())
         self.commandBar.addActions(
             [
                 self.playAction,
+                self.browserAction,
+                self.clearBrowserAction,
             ]
         )
 
@@ -195,7 +212,7 @@ class HomeInterface(QWidget):
             start = w.startCalendar.text().replace("-", "/")
             end = w.endCalendar.text().replace("-", "/")
             thread = threading.Thread(
-                target=fetch_sign_in.fetch_sign_in_list,
+                target=fetch_sign_in_list,
                 daemon=True,
                 args=(
                     userList,
