@@ -10,8 +10,6 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 import requests
 import time
 import os
@@ -20,17 +18,18 @@ import shutil
 import psutil
 import ws_client
 import private_config
+from use_path import static_path
 
-current_path = os.path.abspath(__file__)
-static_path = os.path.join(os.path.dirname(current_path), "resource", "static")
+ws = None
 
 
 def get_config():
-    config = private_config.read_config()
     global HRM_URL
     global BASE_URL
     global proxies
     global USER_LIST
+    global config
+    config = private_config.read_config()
     HRM_URL = config["HRM_URL"]
     BASE_URL = config["BASE_URL"]
     proxies = {"http": config["HTTP_PROXY"], "https": config["HTTP_PROXY"]}
@@ -104,14 +103,19 @@ def clear_error_count():
 
 
 # 时间处理
-def time_format():
+def time_format(format="%Y-%m-%d %H:%M:%S"):
     # 当前时间
-    now_localtime = time.strftime("%Y/%m/%d", time.localtime())
-    return now_localtime
+    now_localtime = time.strftime(format, time.localtime())
+    # 当前时间（以时间区间的方式表示）
+    now_time = Interval(now_localtime, now_localtime)
+    return now_time
+
+
+now_date = time_format("%Y/%m/%d")
 
 
 # 创建测试浏览器
-def create_browser():
+def create_browser(headless=True):
     get_error_count()
     global browser
 
@@ -120,21 +124,23 @@ def create_browser():
     if platform.system().lower() == "windows":
         suffix = ".exe"
 
-    chrome_path = os.path.join(static_path, "chrome", f"chrome{suffix}")
-    chromedriver_path = os.path.join(static_path, f"chromedriver{suffix}")
+    chrome_path = os.path.join(f"{config['CHROME']}", f"chrome{suffix}")
+    chromedriver_path = os.path.join(f"{config['CHROME_DRIVER']}", f"chromedriver{suffix}")
     if (
         os.path.exists(chrome_path) == False
         or os.path.exists(chromedriver_path) == False
     ):
         raise Exception("chrome与chromedriver不存在")
 
-    options = Options()
+    options = webdriver.ChromeOptions()
     options.binary_location = chrome_path
     # 防止检测
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option("useAutomationExtension", False)
+    options.add_experimental_option("detach", True)
     # 显示UI
-    options.add_argument("--headless=chrome")
+    if headless:
+        options.add_argument("--headless=chrome")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-gpu")
     options.add_argument("--start-maximized")
@@ -142,15 +148,14 @@ def create_browser():
     options.add_argument("--verbose")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1280,960")
-    options.add_argument("--remote-debugging-port=9333")
-    # options.add_argument("--profile-directory=profile")
-    # options.add_argument("--user-data-dir={}".format(os.path.join(static_path, "profile")))
+    # options.add_argument("--remote-debugging-port=9333")
+    options.add_argument('--remote-debugging-pipe')
 
     # 添加一个自定义的代理插件（配置特定的代理，含用户名密码认证），无法在无ui（--headless）情况下运行，解决："--headless=chrome"可以添加代理
     # proxy = config["HTTP_PROXY"].split("http://")[1]
     # options.add_extension(get_chrome_proxy_extension(proxy=proxy))
 
-    service = Service(executable_path=chromedriver_path)
+    service = webdriver.ChromeService(executable_path=chromedriver_path)
     browser = webdriver.Chrome(options=options, service=service)
     try:
         ws_client.send_msg(f"即将进入：{HRM_URL}")
@@ -159,7 +164,7 @@ def create_browser():
     except Exception as e:
         add_error_count()
         ws_client.send_msg("打开网页异常 %s" % e, ws)
-        sign_in_main()
+        create_browser()
 
 
 # 识别验证码
@@ -236,7 +241,9 @@ def get_sign_in_data_for_request(start_date, end_date, current_page=1):
     try:
         browser.implicitly_wait(10)
         ws_client.send_msg(f",正在读取数据...", ws)
-        ws_client.send_msg(f"当前页数{current_page}, 时间范围{start_date} - {end_date}", ws)
+        ws_client.send_msg(
+            f"当前页数{current_page}, 时间范围{start_date} - {end_date}", ws
+        )
 
         # cookie获取
         cookies_list = browser.get_cookies()
@@ -277,7 +284,9 @@ def get_sign_in_data_for_request(start_date, end_date, current_page=1):
         if ret.status_code == 200:
             json_data = json.loads(ret.text)
             ws_client.send_msg(str(json_data))
-            return format_sign_in_data_for_request(json_data, start_date, end_date, current_page)
+            return format_sign_in_data_for_request(
+                json_data, start_date, end_date, current_page
+            )
         else:
             ws_client.send_msg("获取数据异常: %s" % ret, ws)
 
@@ -401,30 +410,38 @@ def destroy():
 
 
 # 杀死残余进程
+def kill_process_by_name(process_name):
+    ws_client.send_msg(f"正在关闭{process_name}进程...")
+    for process in psutil.process_iter():
+        try:
+            if len(process.cmdline()) > 0:
+                if process_name in process.cmdline()[0]:
+                    process.kill()
+                    ws_client.send_msg(f"已终止: {process.pid}")
+        except psutil.ZombieProcess:
+            continue
+        except psutil.NoSuchProcess:
+            continue
+        
+
+
 def detection_process():
-    # 关闭chromedriver相关进程
-    process_name = "chromedriver"
-    process_list = [
-        process for process in psutil.process_iter() if process.name() == process_name
-    ]
-    ws_client.send_msg("查找到chromedriver进程")
-    if len(process_list) > 0:
-        for process in process_list:
-            process.kill()
-            ws_client.send_msg(f"已终止: {process.pid}")
+    kill_process_by_name("resource/static/chrome/chrome")
+    kill_process_by_name("chromedriver")
 
     # 关闭9333端口进程
     port = 9333
-    ws_client.send_msg(f"查找到9333端口进程")
+    ws_client.send_msg(f"正在关闭9333端口进程...")
     for conn in psutil.net_connections():
         if conn.laddr.port == port and conn.status == "LISTEN":
             p = psutil.Process(conn.pid)
             p.kill()
             ws_client.send_msg(f"已终止: {p.pid}")
+    ws_client.send_msg(f"检测进程结束")
 
 
 # 主流程
-def sign_in_main(start_date, end_date):
+def sign_in_main(start_date=now_date, end_date=now_date):
     try:
         create_browser()
 
@@ -455,17 +472,13 @@ def fetch_sign_in_list(user_list=[], client=None, range_date=[]):
     global GLOBAL_PASSWORD
     global ws
     ws = client
-    # 当前时间
-    now_localtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-    # 当前时间（以时间区间的方式表示）
-    now_time = Interval(now_localtime, now_localtime)
+    now_time = time_format("%Y-%m-%d %H:%M:%S")
     ws_client.send_msg("=========%s script start===============" % now_time, ws)
-    detection_process()
+    # detection_process()
     get_config()
     if len(user_list) == 0:
         user_list = USER_LIST
 
-    now_date = time_format()
     if len(range_date) < 2:
         range_date.clear()
         range_date.append(now_date)
@@ -480,5 +493,5 @@ def fetch_sign_in_list(user_list=[], client=None, range_date=[]):
 
 
 if __name__ == "__main__":
-    fetch_sign_in_list(range_date=["2024/07/01", "2024/07/19"])
-    # detection_process()
+    # fetch_sign_in_list(range_date=["2024/07/01", "2024/07/19"])
+    detection_process()
