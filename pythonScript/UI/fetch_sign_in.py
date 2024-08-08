@@ -156,9 +156,9 @@ def create_browser(headless=True):
     # 添加一个自定义的代理插件（配置特定的代理，含用户名密码认证），无法在无ui（--headless）情况下运行，解决："--headless=chrome"可以添加代理
     proxy = config["HTTP_PROXY"].split("http://")[1]
     options.add_extension(get_chrome_proxy_extension(proxy=proxy))
-    webdriver.DesiredCapabilities.CHROME['proxy'] = {
-        'httpProxy': config["HTTP_PROXY"],
-        'proxyType': 'manual'
+    webdriver.DesiredCapabilities.CHROME["proxy"] = {
+        "httpProxy": config["HTTP_PROXY"],
+        "proxyType": "manual",
     }
     if "@" in proxy:
         user_add = proxy.split("@")
@@ -232,6 +232,10 @@ def login_frame():
         inputs[1].send_keys(GLOBAL_PASSWORD)
         login_btn = login_form.find_element(By.TAG_NAME, "button")
         login_btn.click()
+
+        warning_msg = browser.find_element(By.XPATH, "//div[@class='el-message el-message--warning']/p")
+        if warning_msg:
+            raise Exception(warning_msg.text)
     except NoSuchElementException as e:
         add_error_count()
         ws_client.send_msg("登录流程异常: %s" % e, ws)
@@ -450,8 +454,8 @@ def detection_process():
 
 
 # 主流程
-def sign_in_main(start_date=now_date, end_date=now_date):
-    create_browser()
+def sign_in_main(start_date=now_date, end_date=now_date, handless=True):
+    create_browser(handless)
 
     ws_client.send_msg("登录确认中...", ws)
     check = check_login()
@@ -473,7 +477,7 @@ def sign_in_main(start_date=now_date, end_date=now_date):
 
 
 # 获取签到列表
-def fetch_sign_in_list(user_list=[], client=None, range_date=[]):
+def fetch_sign_in_list(user_list=[], client=None, range_date=[], headless=True):
     global GLOBAL_USERNAME
     global GLOBAL_PASSWORD
     global ws
@@ -494,10 +498,10 @@ def fetch_sign_in_list(user_list=[], client=None, range_date=[]):
         GLOBAL_USERNAME = user["username"]
         GLOBAL_PASSWORD = user["password"]
         clear_error_count()
-        sign_in_main(range_date[0], range_date[1])
+        sign_in_main(range_date[0], range_date[1], headless)
     ws_client.send_msg("=========script end===============", ws)
 
 
 if __name__ == "__main__":
-    # fetch_sign_in_list(range_date=["2024/07/01", "2024/07/19"])
-    detection_process()
+    fetch_sign_in_list(range_date=["2024/08/01", "2024/08/01"], headless=False)
+    # detection_process()
