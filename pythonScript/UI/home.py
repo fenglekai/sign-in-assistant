@@ -1,8 +1,8 @@
 from datetime import datetime
-import os
 import sys
 import threading
-from PyQt6.QtCore import Qt, QObject, pyqtSignal, QUrl, QDate
+import time
+from PyQt6.QtCore import Qt, QObject, pyqtSignal, QDate
 from PyQt6.QtWidgets import QWidget, QTextEdit, QFrame, QVBoxLayout
 from qfluentwidgets import (
     SmoothScrollArea,
@@ -11,7 +11,6 @@ from qfluentwidgets import (
     Action,
     MessageBoxBase,
     SubtitleLabel,
-    LineEdit,
     ComboBox,
     CalendarPicker,
     BodyLabel,
@@ -25,6 +24,7 @@ from fetch_sign_in import (
 from ws_client import connection, disconnection
 from private_config import read_config
 from style import StyleSheet
+from setting import cfg
 
 
 class ConsoleRedirect(QObject):
@@ -106,7 +106,12 @@ class HomeInterface(QWidget):
 
         self.playAction = Action(
             FluentIcon.PLAY,
-            "连接启动",
+            "开启连接",
+            checkable=True,
+        )
+        self.autoAction = Action(
+            FluentIcon.DATE_TIME,
+            "开启自动任务",
             checkable=True,
         )
         self.browserAction = Action(
@@ -117,6 +122,8 @@ class HomeInterface(QWidget):
             FluentIcon.BROOM,
             "销毁浏览器进程",
         )
+
+        self.autoFlag = False
 
         self.__initLayout()
         self.__initWidget()
@@ -150,11 +157,14 @@ class HomeInterface(QWidget):
         self.commandBar.addSeparator()
         self.playAction.toggled.connect(self.handleActionCheck)
         self.playAction.setChecked(True)
-        self.browserAction.triggered.connect(lambda: (get_config(), create_browser(headless=False)))
-        self.clearBrowserAction.triggered.connect(lambda: detection_process())
+        self.autoAction.toggled.connect(self.handleAutoClick)
+        self.autoAction.setChecked(True)
+        self.browserAction.triggered.connect(self.handleBrowser)
+        self.clearBrowserAction.triggered.connect(self.handleClearBrowser)
         self.commandBar.addActions(
             [
                 self.playAction,
+                self.autoAction,
                 self.browserAction,
                 self.clearBrowserAction,
             ]
@@ -221,3 +231,44 @@ class HomeInterface(QWidget):
                 ),
             )
             thread.start()
+
+    def handleBrowser(self):
+        get_config()
+        threading.Thread(
+            target=create_browser,
+            daemon=True,
+            args=(False,),
+        ).start()
+
+    def handleClearBrowser(self):
+        threading.Thread(
+            target=detection_process,
+            daemon=True,
+        ).start()
+
+    def autoTask(self):
+        autoInterval = int(cfg.config["AUTO_INTERVAL"]) * 60
+        print(f"下次自动任务将在 { int(autoInterval/60) } 分钟后执行")
+        timer = 0
+        while True:
+            if self.autoFlag:
+                time.sleep(1)
+                timer += 1
+                if timer > autoInterval:
+                    fetch_sign_in_list()
+                    threading.Thread(
+                        target=self.autoTask,
+                        daemon=True,
+                    ).start()
+                    break
+            else:
+                print(f"自动任务已终止")
+                break
+
+    def handleAutoClick(self):
+        self.autoFlag = not self.autoFlag
+        if self.autoFlag:
+            threading.Thread(
+                target=self.autoTask,
+                daemon=True,
+            ).start()

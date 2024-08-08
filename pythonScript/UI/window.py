@@ -155,11 +155,11 @@ def setupWindow():
     app.createInstance()
 
     def handleGlobalException(excType, excValue, excTraceback):
-        if excType == psutil.ZombieProcess or excType == psutil.NoSuchProcess:
+        if excType == psutil.ZombieProcess or excType == psutil.NoSuchProcess or psutil.AccessDenied:
             return
         w = Dialog(
             "错误",
-            f"应用运行出错:\nErrorType: {excType}\n{excValue}\n{excTraceback}",
+            f"应用运行出错:\nErrorType: {excType}\n{excValue}",
             app.instance,
         )
         w.yesButton.setText("确认")

@@ -258,8 +258,6 @@ class SettingInterface(ScrollArea):
 
         self.__initConfig()
         self.updateUserList()
-        thread = threading.Thread(target=self.__initTask, daemon=True)
-        thread.start()
 
         self.view.setObjectName("view")
         self.setObjectName("settingInterface")
@@ -292,7 +290,9 @@ class SettingInterface(ScrollArea):
 
     def handleFolderCardClicked(self, currentFolder, folderCard):
         """download folder card clicked slot"""
-        folder = QFileDialog.getExistingDirectory(self, self.tr("Choose folder"), cfg.config[currentFolder.name])
+        folder = QFileDialog.getExistingDirectory(
+            self, self.tr("Choose folder"), cfg.config[currentFolder.name]
+        )
         if not folder or cfg.get(currentFolder) == folder:
             return
 
@@ -356,15 +356,3 @@ class SettingInterface(ScrollArea):
 
         menu.addAction(action)
         menu.exec(QCursor.pos(), aniType=MenuAnimationType.DROP_DOWN)
-
-    def __initTask(self):
-        autoInterval = int(cfg.config["AUTO_INTERVAL"]) * 60
-        print(f"下次自动任务将在 { int(autoInterval/60) } 分钟后执行")
-        time.sleep(autoInterval)
-        self.autoTask()
-
-    def autoTask(self):
-        autoInterval = int(cfg.config["AUTO_INTERVAL"]) * 60
-        print(f"下次自动任务将在 { int(autoInterval/60) } 分钟后执行")
-        fetch_sign_in.fetch_sign_in_list()
-        threading.Timer(autoInterval, self.autoTask).start()

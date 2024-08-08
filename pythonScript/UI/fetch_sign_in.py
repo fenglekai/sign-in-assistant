@@ -2,14 +2,12 @@
 import json
 import platform
 import re
-import signal
 import zipfile
 from PIL import Image
 from interval import Interval
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.common.keys import Keys
 import requests
 import time
 import os
@@ -94,6 +92,7 @@ def add_error_count():
 def get_error_count():
     global error_count
     if error_count > 5:
+        ws_client.send_msg("异常次数过多停止任务")
         raise Exception("异常次数过多停止任务")
 
 
@@ -125,11 +124,14 @@ def create_browser(headless=True):
         suffix = ".exe"
 
     chrome_path = os.path.join(f"{config['CHROME']}", f"chrome{suffix}")
-    chromedriver_path = os.path.join(f"{config['CHROME_DRIVER']}", f"chromedriver{suffix}")
+    chromedriver_path = os.path.join(
+        f"{config['CHROME_DRIVER']}", f"chromedriver{suffix}"
+    )
     if (
         os.path.exists(chrome_path) == False
         or os.path.exists(chromedriver_path) == False
     ):
+        ws_client.send_msg("chrome与chromedriver不存在")
         raise Exception("chrome与chromedriver不存在")
 
     options = webdriver.ChromeOptions()
@@ -148,12 +150,21 @@ def create_browser(headless=True):
     options.add_argument("--verbose")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1280,960")
-    # options.add_argument("--remote-debugging-port=9333")
-    options.add_argument('--remote-debugging-pipe')
+    options.add_argument("--remote-debugging-port=9333")
+    # options.add_argument('--remote-debugging-pipe')
 
     # 添加一个自定义的代理插件（配置特定的代理，含用户名密码认证），无法在无ui（--headless）情况下运行，解决："--headless=chrome"可以添加代理
-    # proxy = config["HTTP_PROXY"].split("http://")[1]
-    # options.add_extension(get_chrome_proxy_extension(proxy=proxy))
+    proxy = config["HTTP_PROXY"].split("http://")[1]
+    options.add_extension(get_chrome_proxy_extension(proxy=proxy))
+    webdriver.DesiredCapabilities.CHROME['proxy'] = {
+        'httpProxy': config["HTTP_PROXY"],
+        'proxyType': 'manual'
+    }
+    if "@" in proxy:
+        user_add = proxy.split("@")
+        ip_port = user_add[1]
+
+    options.add_argument(f"--proxy-server=http://{ip_port}")
 
     service = webdriver.ChromeService(executable_path=chromedriver_path)
     browser = webdriver.Chrome(options=options, service=service)
@@ -418,11 +429,9 @@ def kill_process_by_name(process_name):
                 if process_name in process.cmdline()[0]:
                     process.kill()
                     ws_client.send_msg(f"已终止: {process.pid}")
-        except psutil.ZombieProcess:
+        except Exception as e:
+            ws_client.send_msg(f"关闭{process.pid}失败: {e}")
             continue
-        except psutil.NoSuchProcess:
-            continue
-        
 
 
 def detection_process():
@@ -442,28 +451,25 @@ def detection_process():
 
 # 主流程
 def sign_in_main(start_date=now_date, end_date=now_date):
-    try:
-        create_browser()
+    create_browser()
 
-        ws_client.send_msg("登录确认中...", ws)
-        check = check_login()
-        if check == False:
-            return destroy()
+    ws_client.send_msg("登录确认中...", ws)
+    check = check_login()
+    if check == False:
+        return destroy()
 
-        ws_client.send_msg("查询打卡记录...", ws)
-        data = get_sign_in_data_for_request(start_date, end_date)
-        ws_client.send_msg(str(data), ws)
+    ws_client.send_msg("查询打卡记录...", ws)
+    data = get_sign_in_data_for_request(start_date, end_date)
+    ws_client.send_msg(str(data), ws)
 
-        if len(data) == 0:
-            destroy()
-            return ws_client.send_msg("没有需要发送的打卡纪录", ws)
-
-        ws_client.send_msg("发送数据到后台...", ws)
-        insert_sign_in_data(data)
-
+    if len(data) == 0:
         destroy()
-    except Exception as e:
-        ws_client.send_msg("主流程异常: %s" % e, ws)
+        return ws_client.send_msg("没有需要发送的打卡纪录", ws)
+
+    ws_client.send_msg("发送数据到后台...", ws)
+    insert_sign_in_data(data)
+
+    destroy()
 
 
 # 获取签到列表
