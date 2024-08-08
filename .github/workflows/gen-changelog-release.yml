@@ -1,0 +1,61 @@
+name: gen-changelog-release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Generate Changelog
+        run: |
+          # 定义package.json文件路径
+          PACKAGE_FILE="package.json"
+
+          # 检查package.json是否存在
+          if [ ! -f "$PACKAGE_FILE" ]; then
+              echo "$PACKAGE_FILE does not exist, creating file..."
+              # 创建package.json文件并添加初始的version字段
+              echo '{"version": "1.0.0"}' > "$PACKAGE_FILE"
+          fi
+
+          # 使用jq检查version字段是否存在
+          if ! jq --exit-status 'has("version")' "$PACKAGE_FILE" > /dev/null; then
+              echo "version field does not exist, adding 'version' field..."
+              # 使用jq添加version字段
+              jq '. + {"version": "1.0.0"}' "$PACKAGE_FILE" > tmp.$$.json && mv tmp.$$.json "$PACKAGE_FILE"
+          fi
+          
+          # 生成changelog
+          echo "tag_version=${GITHUB_REF#refs/*/v}" >> $GITHUB_OUTPUT
+          sed -i "s/\"version\": \".*\"/\"version\": \"$tag_version\"/g" package.json
+          npx conventional-changelog-cli -p angular -r 2 -i CHANGELOG.md -s
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ github.token }}
+          body_path: CHANGELOG.md
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog
+          path: |
+            CHANGELOG.md
