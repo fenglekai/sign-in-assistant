@@ -365,7 +365,8 @@ const wsMsgContent = ref([]);
 const wsConnection = (dateRange = "") => {
   let timer = null;
   const { uId, time } = userInformation.value;
-  const socket = new WebSocket("wss://foxconn.devkai.site/api");
+  const socket = new WebSocket("wss://" + httpUrl.split('://')[1]);
+  // const socket = new WebSocket("ws://" + httpUrl.split('://')[1]);
   socket.onopen = () => {
     socket.send(`[web] ${uId}${dateRange}`);
     timer = setTimer(socket);

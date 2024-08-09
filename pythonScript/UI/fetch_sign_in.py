@@ -19,6 +19,7 @@ import private_config
 from use_path import static_path
 
 ws = None
+browser = None
 
 
 def get_config():
@@ -106,8 +107,8 @@ def time_format(format="%Y-%m-%d %H:%M:%S"):
     # 当前时间
     now_localtime = time.strftime(format, time.localtime())
     # 当前时间（以时间区间的方式表示）
-    now_time = Interval(now_localtime, now_localtime)
-    return now_time
+    # now_time = Interval(now_localtime, now_localtime)
+    return now_localtime
 
 
 now_date = time_format("%Y/%m/%d")
@@ -154,17 +155,16 @@ def create_browser(headless=True):
     # options.add_argument('--remote-debugging-pipe')
 
     # 添加一个自定义的代理插件（配置特定的代理，含用户名密码认证），无法在无ui（--headless）情况下运行，解决："--headless=chrome"可以添加代理
-    proxy = config["HTTP_PROXY"].split("http://")[1]
-    options.add_extension(get_chrome_proxy_extension(proxy=proxy))
-    webdriver.DesiredCapabilities.CHROME["proxy"] = {
-        "httpProxy": config["HTTP_PROXY"],
-        "proxyType": "manual",
-    }
-    if "@" in proxy:
-        user_add = proxy.split("@")
-        ip_port = user_add[1]
-
-    options.add_argument(f"--proxy-server=http://{ip_port}")
+    # proxy = config["HTTP_PROXY"].split("http://")[1]
+    # options.add_extension(get_chrome_proxy_extension(proxy=proxy))
+    # webdriver.DesiredCapabilities.CHROME["proxy"] = {
+    #     "httpProxy": config["HTTP_PROXY"],
+    #     "proxyType": "manual",
+    # }
+    # if "@" in proxy:
+    #     user_add = proxy.split("@")
+    #     ip_port = user_add[1]
+    # options.add_argument(f"--proxy-server=http://{ip_port}")
 
     service = webdriver.ChromeService(executable_path=chromedriver_path)
     browser = webdriver.Chrome(options=options, service=service)
@@ -175,6 +175,7 @@ def create_browser(headless=True):
     except Exception as e:
         add_error_count()
         ws_client.send_msg("打开网页异常 %s" % e, ws)
+        destroy()
         create_browser()
 
 
@@ -232,13 +233,18 @@ def login_frame():
         inputs[1].send_keys(GLOBAL_PASSWORD)
         login_btn = login_form.find_element(By.TAG_NAME, "button")
         login_btn.click()
-
-        warning_msg = browser.find_element(By.XPATH, "//div[@class='el-message el-message--warning']/p")
-        if warning_msg:
-            raise Exception(warning_msg.text)
     except NoSuchElementException as e:
         add_error_count()
         ws_client.send_msg("登录流程异常: %s" % e, ws)
+
+    try:
+        warning_msg = browser.find_element(
+            By.XPATH, "//div[@class='el-message el-message--warning']/p"
+        )
+        if warning_msg:
+            raise Exception(warning_msg.text)
+    except NoSuchElementException as e:
+        return
 
 
 # 等待接口数据加载
@@ -419,7 +425,8 @@ def insert_sign_in_data(data):
 
 # 关闭浏览器
 def destroy():
-    browser.quit()
+    if browser:
+        browser.quit()
     if os.path.exists(CUSTOM_CHROME_PROXY_EXTENSIONS_DIR):
         shutil.rmtree(CUSTOM_CHROME_PROXY_EXTENSIONS_DIR)
 
@@ -439,6 +446,7 @@ def kill_process_by_name(process_name):
 
 
 def detection_process():
+    destroy()
     kill_process_by_name("resource/static/chrome/chrome")
     kill_process_by_name("chromedriver")
 

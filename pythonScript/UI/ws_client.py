@@ -1,4 +1,5 @@
 # -*- coding: UTF-8 -*-
+import json
 import threading
 import websocket
 import time
@@ -6,8 +7,13 @@ import fetch_sign_in
 import private_config
 from logger import logger
 
+console_redirect = None
+config = None
+current_user = ""
+
 
 def get_config():
+    global config
     config = private_config.read_config()
     global HTTP_PROXY
     global USER_LIST
@@ -20,18 +26,25 @@ TASK_END = "任务结束"
 
 
 def send_msg(msg, ws=None):
+    global current_user
     print(msg)
     logger.info(msg)
     if ws:
-        ws.send(msg)
+        post_msg = {"data": msg, "userId": current_user}
+        ws.send(str(post_msg))
 
 
 def on_message(ws, message):
-    print(f"{PY_KEY} message: {message}")
-    config = private_config.read_config()
+    global current_user
+    web_json = json.loads(message)
+    data = web_json["data"]
+    send_msg(f"{PY_KEY} message: {data}")
+    current_user = web_json["currentUser"]["userId"]
+    # TODO 获取用户添加到页面
+    # 处理查询信息
+    get_config()
     user_list = config["USER_LIST"]
-    msg_split = message.split(" ")
-    print(msg_split)
+    msg_split = data.split(" ")
     username = msg_split[1]
     date_range = []
     if len(msg_split) == 3:
@@ -58,15 +71,20 @@ def on_close(ws, close_status_code, close_msg):
     if manual_close != True:
         send_msg(f"{PY_KEY} 尝试重新连接")
         time.sleep(3)
-        connection(console_redirect)
+        if console_redirect:
+            connection(console_redirect)
+        else:
+            run()
 
 
 def on_open(ws):
-    send_msg(f"{PY_KEY} 连接成功", ws)
+    send_msg(f"{PY_KEY} 连接成功")
+    send_msg(f"{PY_KEY}::", ws)
 
 
 ws = websocket.WebSocketApp(
     "wss://foxconn.devkai.site/api",
+    # "ws://localhost:8003/api",
     on_open=on_open,
     on_message=on_message,
     on_error=on_error,
