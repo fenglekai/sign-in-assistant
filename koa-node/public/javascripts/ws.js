@@ -1,6 +1,7 @@
 //util/ws.js
 const WebSocket = require("ws");
 const uuid = require("uuid");
+const zlib = require("zlib");
 
 /**
  * @typedef {{userClient: WebSocket; ip: string; roomKey: string }} UserValue
@@ -84,12 +85,23 @@ module.exports = (wss) => {
         roomSend(ws, message, isBinary, userId);
         return;
       }
-      if (message.includes("'userId': ")) {
-        const replaceMsg = message.toString().replaceAll("'", '"')
+      if (message.includes("[python]_")) {
+        // [python] {'userId': 'id', 'data': 'xxx'}
+        const replaceMsg = message.toString().replace("[python]_", "").replaceAll("'", '"');
         const postData = JSON.parse(replaceMsg);
-        if (userMap.has(postData["userId"])) {
-          userMap.get(postData["userId"]).userClient.send(postData["data"]);
-        }
+        const buffer = Buffer.from(postData["data"], "base64");
+        zlib.unzip(buffer, (err, result) => {
+          if (err) {
+            console.error("解析失败: ", err);
+            return;
+          }
+          const decompressedData = result.toString("utf-8");
+          postData["data"] = decompressedData
+          if (userMap.has(postData["userId"])) {
+            userMap.get(postData["userId"]).userClient.send(postData["data"]);
+          }
+        });
+        return
       }
     });
     ws.on("error", console.error);

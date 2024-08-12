@@ -1,6 +1,8 @@
 # -*- coding: UTF-8 -*-
+import base64
 import json
 import threading
+import zlib
 import websocket
 import time
 import fetch_sign_in
@@ -30,7 +32,12 @@ def send_msg(msg, ws=None):
     print(msg)
     logger.info(msg)
     if ws:
-        post_msg = {"data": msg, "userId": current_user}
+        if msg == "[python]::":
+            ws.send(msg)
+            return
+        compressed_data = zlib.compress(msg.encode("utf-8"))
+        encoded_data = base64.b64encode(compressed_data).decode("utf-8")
+        post_msg = {"data": f"{PY_KEY}_{encoded_data}", "userId": current_user}
         ws.send(str(post_msg))
 
 
