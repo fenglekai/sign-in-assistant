@@ -111,9 +111,6 @@ def time_format(format="%Y-%m-%d %H:%M:%S"):
     return now_localtime
 
 
-now_date = time_format("%Y/%m/%d")
-
-
 # 创建测试浏览器
 def create_browser(headless=True):
     get_error_count()
@@ -462,7 +459,12 @@ def detection_process():
 
 
 # 主流程
-def sign_in_main(start_date=now_date, end_date=now_date, handless=True):
+def sign_in_main(start_date=None, end_date=None, handless=True):
+    now_date = time_format("%Y/%m/%d")
+    if not start_date:
+        start_date = now_date
+    if not end_date:
+        end_date = now_date
     create_browser(handless)
 
     ws_client.send_msg("登录确认中...", ws)
@@ -498,6 +500,7 @@ def fetch_sign_in_list(user_list=[], client=None, range_date=[], headless=True):
         user_list = USER_LIST
 
     if len(range_date) < 2:
+        now_date = time_format("%Y/%m/%d")
         range_date.clear()
         range_date.append(now_date)
         range_date.append(now_date)
