@@ -2,6 +2,11 @@ name: gen-changelog-release
 
 on:
   workflow_dispatch:
+    inputs:
+      release_count:
+        type: number
+        default: 2
+
 
 permissions:
   contents: write
@@ -23,7 +28,8 @@ jobs:
         with:
           node-version: 20
 
-      - name: Generate Changelog
+      - name: Update version
+        id: version
         run: |
           # 定义package.json文件路径
           PACKAGE_FILE="package.json"
@@ -42,10 +48,12 @@ jobs:
               jq '. + {"version": "1.0.0"}' "$PACKAGE_FILE" > tmp.$$.json && mv tmp.$$.json "$PACKAGE_FILE"
           fi
           
-          # 生成changelog
           echo "tag_version=${GITHUB_REF#refs/*/v}" >> $GITHUB_OUTPUT
           sed -i "s/\"version\": \".*\"/\"version\": \"$tag_version\"/g" package.json
-          npx conventional-changelog-cli -p angular -r 2 -i CHANGELOG.md -s
+
+      - name: Generate Changelog
+        run: |
+          echo "npx conventional-changelog-cli -p angular -r ${{ github.event.inputs.release_count }} -i CHANGELOG.md -s"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
