@@ -20,6 +20,7 @@ from fetch_sign_in import (
     detection_process,
     create_browser,
     get_config,
+    clear_error_count
 )
 from ws_client import connection, disconnection
 from private_config import read_config
@@ -233,6 +234,7 @@ class HomeInterface(QWidget):
             thread.start()
 
     def handleBrowser(self):
+        clear_error_count()
         get_config()
         threading.Thread(
             target=create_browser,
