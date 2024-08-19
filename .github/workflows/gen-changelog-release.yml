@@ -53,7 +53,7 @@ jobs:
 
       - name: Generate Changelog
         run: |
-          echo "npx conventional-changelog-cli -p angular -r ${{ github.event.inputs.release_count }} -i CHANGELOG.md -s"
+          npx conventional-changelog-cli -p angular -r ${{ github.event.inputs.release_count }} -i CHANGELOG.md -s
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
