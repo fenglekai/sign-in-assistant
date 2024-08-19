@@ -54,8 +54,8 @@ class Window(MSFluentWindow):
 
         # create sub interface
         self.homeInterface = HomeInterface(self)
-        # self.settingInterface = Widget("待开发中", self)
         self.settingInterface = SettingInterface(self)
+        # self.settingInterface = Widget("待开发中", self)
 
         self.trayIcon = QSystemTrayIcon(self)
         self.trayMenu = QMenu(self)

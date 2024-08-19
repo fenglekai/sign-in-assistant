@@ -20,7 +20,8 @@ from fetch_sign_in import (
     detection_process,
     create_browser,
     get_config,
-    clear_error_count
+    clear_error_count,
+    time_format,
 )
 from ws_client import connection, disconnection
 from private_config import read_config
@@ -257,7 +258,8 @@ class HomeInterface(QWidget):
                 time.sleep(1)
                 timer += 1
                 if timer > autoInterval:
-                    fetch_sign_in_list()
+                    now_date = time_format("%Y/%m/%d")
+                    fetch_sign_in_list(range_date=[now_date, now_date])
                     threading.Thread(
                         target=self.autoTask,
                         daemon=True,
