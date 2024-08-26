@@ -258,7 +258,7 @@ class HomeInterface(QWidget):
                 time.sleep(1)
                 timer += 1
                 if timer > autoInterval:
-                    now_date = time_format("%Y/%m/%d")
+                    now_date = time.strftime("%Y-%m-%d", time.localtime())
                     fetch_sign_in_list(range_date=[now_date, now_date])
                     threading.Thread(
                         target=self.autoTask,
