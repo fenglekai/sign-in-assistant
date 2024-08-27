@@ -1,5 +1,4 @@
-import threading
-import time
+import platform
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCursor, QResizeEvent
 from PyQt6.QtWidgets import (
@@ -32,11 +31,14 @@ from qfluentwidgets import (
     QConfig,
     ConfigItem,
     FolderValidator,
+    SwitchSettingCard,
+    BoolValidator,
+    MessageBox,
 )
 from style import StyleSheet
 from private_config import read_config, write_config
-import fetch_sign_in
 from use_path import static_path
+from win_autostart import set_autostart
 
 
 class FormItem(QWidget):
@@ -68,11 +70,12 @@ class CardWrapper(QWidget):
         self.__initTitle(title)
 
         for _, widget in enumerate(widgets):
+            widget.setObjectName("cardItem")
             self.hBoxLayout.addWidget(widget, alignment=Qt.AlignmentFlag.AlignVCenter)
-            self.hBoxLayout.setSpacing(24)
 
-        self.vBoxLayout.setContentsMargins(0, 0, 0, 0)
+        self.hBoxLayout.setSpacing(24)
         self.hBoxLayout.setContentsMargins(24, 24, 24, 24)
+        self.vBoxLayout.setContentsMargins(0, 0, 0, 0)
         self.vBoxLayout.addWidget(self.view)
 
         self.view.setObjectName("cardView")
@@ -173,6 +176,13 @@ class SettingInterface(ScrollArea):
         self.title = TitleLabel("设置", self)
         self.view = QWidget(self)
         self.vBoxLayout = QVBoxLayout(self.view)
+        self.autoStart = SwitchSettingCard(
+            FIF.COMPLETED,
+            "应用自启",
+            "仅支持windows下添加应用自启动",
+            configItem=ConfigItem("应用自启", "应用自启", False, BoolValidator()),
+            parent=self.view,
+        )
         self.chromeFolderCard = PushSettingCard(
             "选择目录",
             FIF.FOLDER_ADD,
@@ -187,6 +197,7 @@ class SettingInterface(ScrollArea):
             cfg.get(cfg.chromeDriverFolder),
             self.view,
         )
+
         self.formWidget = QWidget()
         self.formLayout = QVBoxLayout(self.formWidget)
         self.signInUrl = FormItem("签到地址")
@@ -212,6 +223,11 @@ class SettingInterface(ScrollArea):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         self.autoSpinBox.setMaximum(24 * 60)
+        self.autoStart.switchButton.setOnText("开启")
+        self.autoStart.switchButton.setOffText("关闭")
+        self.autoStart.switchButton.checkedChanged.connect(
+            lambda checked: self.handleSwitchAutostart(checked)
+        )
         self.chromeFolderCard.clicked.connect(
             lambda: self.handleFolderCardClicked(
                 cfg.chromeFolder, self.chromeFolderCard
@@ -222,10 +238,10 @@ class SettingInterface(ScrollArea):
                 cfg.chromeDriverFolder, self.chromeDriverFolderCard
             )
         )
-        self.saveButton.setFixedWidth(120)
+        self.saveButton.setFixedWidth(60)
         self.saveButton.clicked.connect(lambda: self.updateConfig())
         self.autoLayout.setSpacing(24)
-        self.formLayout.setContentsMargins(0, 0, 0, 0)
+        self.formLayout.setContentsMargins(0, 0, 0, 12)
         self.formLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.autoLayout.setContentsMargins(0, 0, 0, 0)
         self.addButton.clicked.connect(
@@ -236,6 +252,7 @@ class SettingInterface(ScrollArea):
         self.userTable.table.cellClicked.connect(self.handleCell)
 
         self.vBoxLayout.addWidget(self.title)
+        self.vBoxLayout.addWidget(self.autoStart)
         self.vBoxLayout.addWidget(self.chromeFolderCard)
         self.vBoxLayout.addWidget(self.chromeDriverFolderCard)
         self.formLayout.addWidget(self.signInUrl)
@@ -356,3 +373,24 @@ class SettingInterface(ScrollArea):
 
         menu.addAction(action)
         menu.exec(QCursor.pos(), aniType=MenuAnimationType.DROP_DOWN)
+
+    def handleSwitchAutostart(self, checked):
+        winFlag = platform.system().lower() != "windows"
+        if checked and winFlag:
+            self.autoStart.switchButton.setText("开启")
+            w = MessageBox(
+                "提示",
+                "当前系统平台不是windows",
+                self.window(),
+            )
+            w.yesButton.setText("确认")
+            w.cancelButton.hide()
+            if w.exec():
+                self.autoStart.switchButton.setChecked(False)
+                return
+        if checked:
+            self.autoStart.switchButton.setText("开启")
+            set_autostart(True)
+        else:
+            self.autoStart.switchButton.setText("关闭")
+            set_autostart(False)

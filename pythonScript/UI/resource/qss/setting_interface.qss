@@ -10,8 +10,12 @@
 
 #cardView {
     background-color: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgb(240, 240, 240);
+    border: 2px solid rgb(240, 240, 240);
     border-radius: 5px;
     margin: 0;
     outline: none;
+}
+
+#cardItem {
+    margin-bottom: 12px;
 }
