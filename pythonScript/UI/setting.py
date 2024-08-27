@@ -1,3 +1,4 @@
+import importlib
 import platform
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCursor, QResizeEvent
@@ -38,7 +39,6 @@ from qfluentwidgets import (
 from style import StyleSheet
 from private_config import read_config, write_config
 from use_path import static_path
-from win_autostart import set_autostart
 
 
 class FormItem(QWidget):
@@ -388,9 +388,11 @@ class SettingInterface(ScrollArea):
             if w.exec():
                 self.autoStart.switchButton.setChecked(False)
                 return
-        if checked:
-            self.autoStart.switchButton.setText("开启")
-            set_autostart(True)
-        else:
-            self.autoStart.switchButton.setText("关闭")
-            set_autostart(False)
+        else :
+            module = importlib.import_module('win_autostart')
+            if checked:
+                self.autoStart.switchButton.setText("开启")
+                module.set_autostart(True)
+            else:
+                self.autoStart.switchButton.setText("关闭")
+                module.set_autostart(False)
