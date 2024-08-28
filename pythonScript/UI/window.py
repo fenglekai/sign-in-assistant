@@ -141,11 +141,8 @@ class SingletonApp(QApplication):
         self.instance = None
 
     def createInstance(self):
-        if self.instance is not None:
-            self.instance.show()
-            self.instance.raise_()
-            return
         self.instance = Window(self)
+        
 
 
 def setupWindow():
