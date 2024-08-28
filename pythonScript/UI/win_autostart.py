@@ -1,7 +1,7 @@
 import winreg
 import os
 
-def set_autostart(autostart=True):
+def set_autostart(autostart):
     key_path = r'Software\Microsoft\Windows\CurrentVersion\Run'
     app_name = 'SignInAssistant'
     app_path = os.path.abspath('sign-in-assistant.exe')

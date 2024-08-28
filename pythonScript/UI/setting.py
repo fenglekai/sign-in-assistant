@@ -180,7 +180,7 @@ class SettingInterface(ScrollArea):
             FIF.COMPLETED,
             "应用自启",
             "仅支持windows下添加应用自启动",
-            configItem=ConfigItem("应用自启", "应用自启", False, BoolValidator()),
+            configItem=ConfigItem("应用自启", "应用自启", bool(int(cfg.config["AUTO_START"])), BoolValidator()),
             parent=self.view,
         )
         self.chromeFolderCard = PushSettingCard(
@@ -393,6 +393,9 @@ class SettingInterface(ScrollArea):
             if checked:
                 self.autoStart.switchButton.setText("开启")
                 module.set_autostart(True)
+                cfg.config["AUTO_START"] = "1"
             else:
                 self.autoStart.switchButton.setText("关闭")
                 module.set_autostart(False)
+                cfg.config["AUTO_START"] = "0"
+            cfg.updateConfig()
