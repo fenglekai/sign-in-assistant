@@ -20,7 +20,7 @@ from qfluentwidgets import (
 from qfluentwidgets import FluentIcon as FIF, SplashScreen, Dialog
 from home import HomeInterface
 from setting import SettingInterface
-from check_window import check_window, remove_file
+from check_window import check_window, remove_file, set_window
 from use_path import local_path
 
 
@@ -130,7 +130,7 @@ class Window(MSFluentWindow):
 
     def createSubInterface(self):
         loop = QEventLoop(self)
-        check_window(self)
+        
         QTimer.singleShot(1000, loop.quit)
         loop.exec()
 
@@ -142,11 +142,13 @@ class SingletonApp(QApplication):
 
     def createInstance(self):
         self.instance = Window(self)
+        set_window(self.instance)
         
 
 
 def setupWindow():
     # create application
+    check_window()
     app = SingletonApp(sys.argv)
 
     app.createInstance()

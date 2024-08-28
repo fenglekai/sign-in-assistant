@@ -10,6 +10,8 @@ port_file = f"app.pid"
 
 HOST = "localhost"
 
+window = None
+
 def is_port_in_use(port, host=HOST):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
@@ -19,14 +21,17 @@ def is_port_in_use(port, host=HOST):
             return e.errno == errno.EADDRINUSE
 
 
-async def worker_task(reader, writer, window):
-    window.showNormal()
-    window.raise_()
+async def worker_task(reader, writer):
+    global window
+    if window: 
+        if window.isHidden():
+            window.showNormal()
+            window.raise_()
 
 
-async def start_server(port: int, window):
+async def start_server(port: int):
     server = await asyncio.start_server(
-        lambda r, w: worker_task(r, w, window), HOST, port
+        lambda r, w: worker_task(r, w), HOST, port
     )
     print(f"服务器启动,地址: {HOST}:{port}")
     async with server:
@@ -39,18 +44,16 @@ async def start_client(port: int):
     print(f'连接到 {HOST}:{port}')
     writer.close()
 
+
 def threadFun(fn):
     asyncio.run(fn)
 
-def check_window(window):
+
+def check_window():
     if os.path.exists(port_file):
         with open(port_file, "r") as file:
             read_port = int(file.read().strip())
-            threading.Thread(
-                target=threadFun,
-                daemon=True,
-                args=(start_client(read_port),)
-            ).start()
+            threadFun(start_client(read_port))
             sys.exit(1)  # 退出，因为进程已经存在
     else:
         port = 6000
@@ -63,11 +66,16 @@ def check_window(window):
         threading.Thread(
             target=threadFun,
             daemon=True,
-            args=(start_server(port, window),)
+            args=(start_server(port,),)
         ).start()
         with open(port_file, "w") as file:
             file.write(str(port))
         return False
+
+
+def set_window(w):
+    global window
+    window = w
 
 
 def remove_file():
