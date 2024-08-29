@@ -65,7 +65,7 @@ npm run serve
 
 ## Python部分
 
-1. 添加`chromedriver`和`chromium`；去[检索历史](https://vikyd.github.io/download-chromium-history-version/#/)是下载对应你chrome浏览器版本的`chromedriver`和`chromium`，需要ChromeDriver-117以上；
+1. 添加`chromedriver`和`chromium`；去[检索历史](https://vikyd.github.io/download-chromium-history-version/#/)是下载对应你chrome浏览器版本的`chromedriver`和`chromium`；
 2. chromium放在`UI/resource/static`，目录名改成`chrome`
 3. chromedriver放在放在`UI/resource/static`
 

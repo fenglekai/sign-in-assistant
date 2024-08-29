@@ -1,10 +1,7 @@
 # -*- coding: UTF-8 -*-
 import json
 import platform
-import re
-import zipfile
 from PIL import Image
-from interval import Interval
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
@@ -12,11 +9,10 @@ import requests
 import time
 import os
 import ddddocr
-import shutil
 import psutil
 import ws_client
 import private_config
-from use_path import static_path
+from proxy import get_chrome_proxy_extension
 
 ws = None
 browser = None
@@ -33,53 +29,6 @@ def get_config():
     BASE_URL = config["BASE_URL"]
     proxies = {"http": config["HTTP_PROXY"], "https": config["HTTP_PROXY"]}
     USER_LIST = config["USER_LIST"]
-
-
-# Chrome代理模板插件地址: https://github.com/revotu/selenium-chrome-auth-proxy
-CHROME_PROXY_HELPER_DIR = os.path.join(static_path, "chrome-proxy-helper")
-# 存储自定义Chrome代理扩展文件的目录
-CUSTOM_CHROME_PROXY_EXTENSIONS_DIR = os.path.join(
-    static_path, "chrome-proxy-extensions"
-)
-
-
-# 设置selenium的chrome代理
-def get_chrome_proxy_extension(proxy):
-    """获取一个Chrome代理扩展,里面配置有指定的代理(带用户名密码认证)
-    proxy - 指定的代理,格式: username:password@ip:port
-    """
-    m = re.compile("([^:]+):([^\@]+)\@([\d\.]+):(\d+)").search(proxy)
-    if m:
-        # 提取代理的各项参数
-        username = m.groups()[0]
-        password = m.groups()[1]
-        ip = m.groups()[2]
-        port = m.groups()[3]
-        # 创建一个定制Chrome代理扩展(zip文件)
-        if not os.path.exists(CUSTOM_CHROME_PROXY_EXTENSIONS_DIR):
-            os.mkdir(CUSTOM_CHROME_PROXY_EXTENSIONS_DIR)
-        extension_file_path = os.path.join(
-            CUSTOM_CHROME_PROXY_EXTENSIONS_DIR, "{}.zip".format(proxy.replace(":", "_"))
-        )
-        if not os.path.exists(extension_file_path):
-            # 扩展文件不存在，创建
-            zf = zipfile.ZipFile(extension_file_path, mode="w")
-            zf.write(
-                os.path.join(CHROME_PROXY_HELPER_DIR, "manifest.json"), "manifest.json"
-            )
-            # 替换模板中的代理参数
-            background_content = open(
-                os.path.join(CHROME_PROXY_HELPER_DIR, "background.js")
-            ).read()
-            background_content = background_content.replace("%proxy_host", ip)
-            background_content = background_content.replace("%proxy_port", port)
-            background_content = background_content.replace("%username", username)
-            background_content = background_content.replace("%password", password)
-            zf.writestr("background.js", background_content)
-            zf.close()
-        return extension_file_path
-    else:
-        raise Exception("Invalid proxy format. Should be username:password@ip:port")
 
 
 error_count = int(0)
@@ -106,8 +55,6 @@ def clear_error_count():
 def time_format(format="%Y-%m-%d %H:%M:%S"):
     # 当前时间
     now_localtime = time.strftime(format, time.localtime())
-    # 当前时间（以时间区间的方式表示）
-    # now_time = Interval(now_localtime, now_localtime)
     return now_localtime
 
 
@@ -140,32 +87,25 @@ def create_browser(headless=True):
     options.add_experimental_option("detach", True)
     # 显示UI
     if headless:
-        options.add_argument("--headless=chrome")
+        options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-gpu")
-    options.add_argument("--start-maximized")
     options.add_argument("--disable-notifications")
     options.add_argument("--verbose")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1280,960")
-    options.add_argument("--remote-debugging-port=9333")
-    # options.add_argument('--remote-debugging-pipe')
+    options.add_argument("--remote-debugging-port=30725")
+    options.add_argument("--blink-settings=imagesEnabled=false")
+    options.add_argument("--ignore-certificate-errors")
+    options.add_argument("--incognito")
 
-    # 添加一个自定义的代理插件（配置特定的代理，含用户名密码认证），无法在无ui（--headless）情况下运行，解决："--headless=chrome"可以添加代理
-    # proxy = config["HTTP_PROXY"].split("http://")[1]
-    # options.add_extension(get_chrome_proxy_extension(proxy=proxy))
-    # webdriver.DesiredCapabilities.CHROME["proxy"] = {
-    #     "httpProxy": config["HTTP_PROXY"],
-    #     "proxyType": "manual",
-    # }
-    # if "@" in proxy:
-    #     user_add = proxy.split("@")
-    #     ip_port = user_add[1]
-    # options.add_argument(f"--proxy-server=http://{ip_port}")
+    # 添加一个自定义的代理插件（配置特定的代理，含用户名密码认证）
+    # proxy_pass = config["HTTP_PROXY"].split("http://")[1]
+    # options.add_extension(get_chrome_proxy_extension(proxy=proxy_pass))
 
-    service = webdriver.ChromeService(executable_path=chromedriver_path)
-    browser = webdriver.Chrome(options=options, service=service)
     try:
+        service = webdriver.ChromeService(executable_path=chromedriver_path, port=30726)
+        browser = webdriver.Chrome(options=options, service=service)
         ws_client.send_msg(f"即将进入：{HRM_URL}")
         browser.get(HRM_URL)
         clear_error_count()
@@ -424,8 +364,6 @@ def insert_sign_in_data(data):
 def destroy():
     if browser:
         browser.quit()
-    if os.path.exists(CUSTOM_CHROME_PROXY_EXTENSIONS_DIR):
-        shutil.rmtree(CUSTOM_CHROME_PROXY_EXTENSIONS_DIR)
 
 
 # 杀死残余进程
@@ -442,19 +380,22 @@ def kill_process_by_name(process_name):
             continue
 
 
-def detection_process():
-    destroy()
-    kill_process_by_name("resource/static/chrome/chrome")
-    kill_process_by_name("chromedriver")
-
-    # 关闭9333端口进程
-    port = 9333
-    ws_client.send_msg(f"正在关闭9333端口进程...")
+def kill_process_by_port(port):
+    ws_client.send_msg(f"正在关闭30725端口进程...")
     for conn in psutil.net_connections():
         if conn.laddr.port == port and conn.status == "LISTEN":
             p = psutil.Process(conn.pid)
             p.kill()
             ws_client.send_msg(f"已终止: {p.pid}")
+
+
+def detection_process():
+    destroy()
+    kill_process_by_name("resource/static/chrome/chrome")
+    kill_process_by_name("chromedriver")
+
+    kill_process_by_port(30725)
+    kill_process_by_port(30726)
     ws_client.send_msg(f"检测进程结束")
 
 

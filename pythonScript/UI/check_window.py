@@ -22,11 +22,10 @@ def is_port_in_use(port, host=HOST):
 
 
 async def worker_task(reader, writer):
-    global window
-    if window: 
-        if window.isHidden():
-            window.showNormal()
-            window.raise_()
+    print('TODO 调用第一个应用显示窗口')
+    # global window
+    # if window:
+    #     window.showWindow()
 
 
 async def start_server(port: int):

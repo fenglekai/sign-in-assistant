@@ -130,7 +130,6 @@ class Window(MSFluentWindow):
 
     def createSubInterface(self):
         loop = QEventLoop(self)
-        
         QTimer.singleShot(1000, loop.quit)
         loop.exec()
 
