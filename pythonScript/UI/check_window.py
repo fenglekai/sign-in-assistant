@@ -38,10 +38,14 @@ async def start_server(port: int):
 
 
 async def start_client(port: int):
-    reader, writer = await asyncio.open_connection(
-        HOST, port)
-    print(f'连接到 {HOST}:{port}')
-    writer.close()
+    try:
+        reader, writer = await asyncio.open_connection(
+            HOST, port)
+        print(f'连接到 {HOST}:{port}')
+        writer.close()
+    except Exception as e:
+        remove_file(port_file)
+        check_window()
 
 
 def threadFun(fn):

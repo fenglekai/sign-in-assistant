@@ -94,7 +94,7 @@ def create_browser(headless=True):
     options.add_argument("--verbose")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1280,960")
-    options.add_argument("--remote-debugging-port=30725")
+    # options.add_argument("--remote-debugging-port=30725")
     options.add_argument("--blink-settings=imagesEnabled=false")
     options.add_argument("--ignore-certificate-errors")
     options.add_argument("--incognito")
@@ -104,7 +104,8 @@ def create_browser(headless=True):
     # options.add_extension(get_chrome_proxy_extension(proxy=proxy_pass))
 
     try:
-        service = webdriver.ChromeService(executable_path=chromedriver_path, port=30726)
+        # service = webdriver.ChromeService(executable_path=chromedriver_path, port=30726)
+        service = webdriver.ChromeService(executable_path=chromedriver_path)
         browser = webdriver.Chrome(options=options, service=service)
         ws_client.send_msg(f"即将进入：{HRM_URL}")
         browser.get(HRM_URL)
@@ -394,8 +395,8 @@ def detection_process():
     kill_process_by_name("resource/static/chrome/chrome")
     kill_process_by_name("chromedriver")
 
-    kill_process_by_port(30725)
-    kill_process_by_port(30726)
+    # kill_process_by_port(30725)
+    # kill_process_by_port(30726)
     ws_client.send_msg(f"检测进程结束")
 
 
